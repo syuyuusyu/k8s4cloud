@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: k8s4cloud
+
+#  redis:
+#    database: 1
+#    host: 127.0.0.1
+#    port: 6379
+#    password:
+#    timeout: 200
+
+  jackson:
+    default-property-inclusion: NON_NULL
+
+
+
+logging:
+  level:
+    ind.syu: debug
+    io.kubernetes: info
+    org:
+      springframework: debug
+
+
+server:
+  port: 7002
+
+
+self:
+  #kubeConfigPath: /Users/syu/.kube/config-company
+  kubeConfigPath: /Users/syu/.kube/config
+  tokenExpireMin: 300
+  jwtkey: 1KP0SsvENi7Uz1oQc07aXTL7kpQG5jBNIybqr60AlD4
+  activitiRedisApprovalMessageChannel: receiveApprovalSresult
+  allowOrigin: "*"
+  allowMethods: GET,PATCH,PUT,POST,DELETE,OPTIONS
+  allowHeads: access-token,_token,DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range,Referer,Sec-Fetch-Mode
+  ignorePath:
+    - ^/kube
+    - ^/pod-terminal
+

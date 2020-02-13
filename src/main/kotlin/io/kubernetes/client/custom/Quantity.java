@@ -1,0 +1,117 @@
+package io.kubernetes.client.custom;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.Objects;
+
+import org.apache.commons.lang3.ObjectUtils;
+
+@JsonAdapter(Quantity.QuantityAdapter.class)
+@JsonSerialize(using = Quantity.QuntitySerializer.class)
+public class Quantity {
+
+    private final BigDecimal number;
+    private Format format;
+
+    public enum Format {
+        DECIMAL_EXPONENT(10), DECIMAL_SI(10), BINARY_SI(2);
+
+        private int base;
+
+        Format(final int base) {
+            this.base = base;
+        }
+
+        public int getBase() {
+            return base;
+        }
+    }
+
+    public Quantity(final BigDecimal number, final Format format) {
+        this.number = number;
+        this.format = format;
+    }
+
+    public Quantity(final String value) {
+        final Quantity quantity = fromString(value);
+        this.number = quantity.number;
+        this.format = quantity.format;
+    }
+
+    public BigDecimal getNumber() {
+        return number;
+    }
+
+    public Format getFormat() {
+        return format;
+    }
+
+    public static Quantity fromString(final String value) {
+        return new QuantityFormatter().parse(value);
+    }
+
+    public String toSuffixedString() {
+        return new QuantityFormatter().format(this);
+    }
+
+    @Override
+    public String toString() {
+        return "Quantity{" +
+                "number=" + number +
+                ", format=" + format +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Quantity otherQuantity = (Quantity) o;
+
+        return ObjectUtils.compare(this.number, otherQuantity.number) == 0 &&
+                Objects.equals(this.format, otherQuantity.format);
+    }
+
+    public class QuantityAdapter extends TypeAdapter<Quantity> {
+        @Override
+        public void write(JsonWriter jsonWriter, Quantity quantity) throws IOException {
+            jsonWriter.value(quantity != null ? quantity.toSuffixedString() : null);
+        }
+
+        @Override
+        public Quantity read(JsonReader jsonReader) throws IOException {
+            return Quantity.fromString(jsonReader.nextString());
+        }
+    }
+
+    public static class QuntitySerializer extends StdSerializer<Quantity> {
+
+        public QuntitySerializer() {
+            this(null);
+        }
+
+        public QuntitySerializer(Class<Quantity> t) {
+            super(t);
+        }
+
+        @Override
+        public void serialize(Quantity value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            gen.writeString(new QuantityFormatter().format(value));
+
+        }
+    }
+}
