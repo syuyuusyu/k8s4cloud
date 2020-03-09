@@ -3,6 +3,7 @@ package bzh.cloud.k8s.controller
 
 import bzh.cloud.k8s.config.CmContext
 import bzh.cloud.k8s.config.UpdateClient
+import bzh.cloud.k8s.expansion.metricsNode
 import bzh.cloud.k8s.service.ConfigMapService
 import io.kubernetes.client.custom.V1Patch
 import io.kubernetes.client.util.ClientBuilder
@@ -15,10 +16,12 @@ import org.springframework.util.StringUtils
 import org.springframework.web.bind.annotation.*
 import java.io.FileReader
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.kubernetes.client.custom.Quantity
 import io.kubernetes.client.openapi.ApiException
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api
 import io.kubernetes.client.openapi.models.*
+import javax.lang.model.element.QualifiedNameable
 
 
 @RestController
@@ -50,6 +53,56 @@ class KubeController(
         }
     }
 
+    @GetMapping("/namespace")
+    fun nameSpaceList():List<String>{
+        return kubeApi.listNamespace("",false,null,"",null,
+                null,null,0,false )!!.items.map {
+           it.metadata!!.name!!
+        }
+    }
+
+    @GetMapping("/node")
+    fun nodes():List<V1Node>{
+        val result = kubeApi.listNode("",false,
+                null,"",null,null,null,0,false)
+        return result.items
+    }
+
+    @GetMapping("/metrics")
+    fun metrics(): List<HashMap<String, Any?>>? {
+        val metlist = kubeApi.metricsNode()
+        val podList = kubeApi.listPodForAllNamespaces(false,null,null,null,
+                null,null,null,0,false).items
+        val nodelist = kubeApi.listNode(null,false,null,null,null,
+                0,null,0,false)
+        val cpu =  nodelist.items?.map { it.status?.allocatable?.get("cpu")?.number }?.reduce { acc, i -> acc?.add(i)  }
+        val memory = nodelist.items?.map { it.status?.allocatable?.get("memory")?.number }?.reduce { acc, i -> acc?.add(i)  }
+
+        return metlist.items?.map { metricsitem->
+            val map = HashMap<String, Any?>()
+            val usage = metricsitem.usage
+            val nodeItem = nodelist.items.find{it.metadata?.name == metricsitem.metadata?.name }
+            map["nodeName"] = metricsitem.metadata?.name
+            map["allpods"] = podList.size
+            map["usage"] = HashMap<String, Any?>().apply {
+                this["cpu"] = usage?.cpu
+                this["memory"] = usage?.memory
+                this["pods"] = podList.filter { it.spec?.nodeName == metricsitem.metadata?.name }.size
+            }
+            map["total"] = HashMap<String, Any?>().apply {
+                this["cpu"] = cpu
+                this["memory"] = Quantity(memory,Quantity.Format.BINARY_SI)
+            }
+            map["capacity"] = nodeItem?.status?.capacity
+            map["allocatable"] = nodeItem?.status?.allocatable
+            map
+        }
+    }
+
+    @GetMapping("/ResourcequotaAllns")
+    fun resourcequotaAllns(): List<Any> = Resourcequota().listAll()
+
+
     @GetMapping("/{kind}/{ns}")
     fun list(@PathVariable kind: String, @PathVariable ns: String): List<Any> = when (kind) {
             "Ingress" -> Ingress().list(ns)
@@ -58,9 +111,9 @@ class KubeController(
             "PersistentVolumeClaim" -> PersistentVolumeClaim().list(ns)
             "Deployment" -> Deployment().list(ns)
             "ConfigMap" -> configMapService.list(ns)
+            "Resourcequota" -> Resourcequota().list(ns)
             else -> ArrayList<Nothing>()
         }
-
 
     @GetMapping("/{kind}/{ns}/{name}")
     fun read(@PathVariable kind: String, @PathVariable ns: String, @PathVariable name: String): Any = when (kind) {
@@ -179,7 +232,32 @@ class KubeController(
         return result
     }
 
+    inner class Resourcequota{
+        fun buildMap(quota:V1ResourceQuota,podNum:Int) =  HashMap<String, Any?>().apply {
+            this["name"] = quota.metadata?.name
+            this["ns"] = quota.metadata?.namespace
+            this["labels"] = quota.metadata?.labels
+            this["uid"] = quota.metadata?.uid
+            this["podNum"] = podNum
+            this["hard"] = quota.status?.hard
+            this["used"] = quota.status?.used
+        }
+        fun listAll(): List<Any> {
+            val podNum = kubeApi.listPodForAllNamespaces(false,null,null,null,
+                    null,null,null,0,false).items.size
+            return kubeApi.listResourceQuotaForAllNamespaces(false,null,"",
+                    "",null,"true",null,0,false).items
+                    .map { buildMap(it,podNum)}
+        }
+        fun list(ns:String): List<Any> {
+            val podNum = kubeApi.listNamespacedPod(ns,null,null,null,null,
+                    null,null,null,0,false).items.size
+            return kubeApi.listNamespacedResourceQuota(ns,null,null,"",
+                    "",null,null,null,0,false).items
+                    .map { buildMap(it,podNum)}
+        }
 
+    }
 
     inner class Service {
         fun update(service: V1Service) {
@@ -199,7 +277,6 @@ class KubeController(
                         map["uid"] = it.metadata?.uid
                         map
                     }
-
         }
         fun read(ns: String, name: String): V1Service {
             var a = kubeApi.readNamespacedService(name, ns, "true", null, null)
@@ -322,8 +399,6 @@ class KubeController(
 
     inner class Deployment {
         fun list(ns: String): List<Any> {
-            log.info("")
-
             return extensionApi.listNamespacedDeployment(ns, "true",
                     null, null, null, null, null, null, 0,false)
                     .items

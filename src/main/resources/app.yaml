@@ -1,7 +1,6 @@
 spring:
   application:
     name: k8s4cloud
-
   jackson:
     default-property-inclusion: NON_NULL
 
@@ -12,7 +11,7 @@ logging:
     ind.syu: debug
     io.kubernetes: info
     org:
-      springframework: info
+      springframework: debug
 
 
 server:
@@ -20,15 +19,7 @@ server:
 
 
 self:
-  registryUrl: http://192.168.50.28:5000/v2
-  #registryUrl: http://127.0.0.1:5000/v2
-  officalRegistryUrl: https://index.docker.io/v2
-  authRegistryUrl: https://auth.docker.io
-  httpProxy: 127.0.0.1:1087
-  tempFileDir: /tmp/registry/
-
-  kubeConfigPath: /Users/syu/.kube/config-company
-  #kubeConfigPath: /Users/syu/.kube/config
+  kubeConfigPath: /kubeconfig
   tokenExpireMin: 300
   jwtkey: 1KP0SsvENi7Uz1oQc07aXTL7kpQG5jBNIybqr60AlD4
   activitiRedisApprovalMessageChannel: receiveApprovalSresult
@@ -38,5 +29,4 @@ self:
   ignorePath:
     - ^/kube
     - ^/pod-terminal
-    - ^/registry
 

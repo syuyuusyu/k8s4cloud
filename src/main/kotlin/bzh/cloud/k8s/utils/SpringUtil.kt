@@ -1,4 +1,4 @@
-package ind.syu.kubeIsp.utils
+package bzh.cloud.k8s.utils
 
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationContext

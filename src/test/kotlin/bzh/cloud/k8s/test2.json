@@ -1,0 +1,885 @@
+{
+  "kind": "NodeList",
+  "apiVersion": "v1",
+  "metadata": {
+    "selfLink": "/api/v1/nodes",
+    "resourceVersion": "8492175"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "k8s-master.novalocal",
+        "selfLink": "/api/v1/nodes/k8s-master.novalocal",
+        "uid": "ac2f4c8e-81d4-442e-9b5c-a5090661bef2",
+        "resourceVersion": "8491779",
+        "creationTimestamp": "2020-01-07T07:27:48Z",
+        "labels": {
+          "beta.kubernetes.io/arch": "amd64",
+          "beta.kubernetes.io/os": "linux",
+          "kubernetes.io/arch": "amd64",
+          "kubernetes.io/hostname": "k8s-master.novalocal",
+          "kubernetes.io/os": "linux",
+          "node-role.kubernetes.io/master": ""
+        },
+        "annotations": {
+          "kubeadm.alpha.kubernetes.io/cri-socket": "/var/run/dockershim.sock",
+          "node.alpha.kubernetes.io/ttl": "0",
+          "volumes.kubernetes.io/controller-managed-attach-detach": "true"
+        }
+      },
+      "spec": {
+        "taints": [
+          {
+            "key": "node-role.kubernetes.io/master",
+            "effect": "NoSchedule"
+          }
+        ]
+      },
+      "status": {
+        "capacity": {
+          "cpu": "4",
+          "ephemeral-storage": "52417516Ki",
+          "hugepages-1Gi": "0",
+          "hugepages-2Mi": "0",
+          "memory": "8009560Ki",
+          "pods": "110"
+        },
+        "allocatable": {
+          "cpu": "4",
+          "ephemeral-storage": "48307982666",
+          "hugepages-1Gi": "0",
+          "hugepages-2Mi": "0",
+          "memory": "7907160Ki",
+          "pods": "110"
+        },
+        "conditions": [
+          {
+            "type": "NetworkUnavailable",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-06T07:27:14Z",
+            "lastTransitionTime": "2020-03-06T07:27:14Z",
+            "reason": "WeaveIsUp",
+            "message": "Weave pod has set this"
+          },
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:43:30Z",
+            "lastTransitionTime": "2020-01-07T07:27:42Z",
+            "reason": "KubeletHasSufficientMemory",
+            "message": "kubelet has sufficient memory available"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:43:30Z",
+            "lastTransitionTime": "2020-01-07T07:27:42Z",
+            "reason": "KubeletHasNoDiskPressure",
+            "message": "kubelet has no disk pressure"
+          },
+          {
+            "type": "PIDPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:43:30Z",
+            "lastTransitionTime": "2020-01-07T07:27:42Z",
+            "reason": "KubeletHasSufficientPID",
+            "message": "kubelet has sufficient PID available"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastHeartbeatTime": "2020-03-09T05:43:30Z",
+            "lastTransitionTime": "2020-02-12T02:33:11Z",
+            "reason": "KubeletReady",
+            "message": "kubelet is posting ready status"
+          }
+        ],
+        "addresses": [
+          {
+            "type": "InternalIP",
+            "address": "192.168.50.28"
+          },
+          {
+            "type": "Hostname",
+            "address": "k8s-master.novalocal"
+          }
+        ],
+        "daemonEndpoints": {
+          "kubeletEndpoint": {
+            "Port": 10250
+          }
+        },
+        "nodeInfo": {
+          "machineID": "622ba110a69e24eda2dca57e4d306baa",
+          "systemUUID": "A1643B34-BBDC-4196-A13B-F7684CD83751",
+          "bootID": "612904c8-f07a-4996-9c38-d0998aebe748",
+          "kernelVersion": "3.10.0-862.2.3.el7.x86_64",
+          "osImage": "CentOS Linux 7 (Core)",
+          "containerRuntimeVersion": "docker://18.6.1",
+          "kubeletVersion": "v1.17.0",
+          "kubeProxyVersion": "v1.17.0",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        },
+        "images": [
+          {
+            "names": [
+              "192.168.50.28:5000/data-query@sha256:97f3932949246d0437db046af28505279db97864bad0314a77dc0d9668af6b0f",
+              "192.168.50.28:5000/data-query:v1.2",
+              "data-query:v1.2"
+            ],
+            "sizeBytes": 880637102
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/data-query@sha256:225ee835c5b8280c7a0e1e04ab811130050af95535d056a17a53c143c68b12e5",
+              "192.168.50.28:5000/data-query:v1.1",
+              "data-query:v1.1"
+            ],
+            "sizeBytes": 878726467
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/data-query@sha256:9f41bd16814b162f871a31c27646fd5ef5501247942a7386ca679d8a9c820cb0",
+              "192.168.50.28:5000/data-query:v1",
+              "data-query:v1"
+            ],
+            "sizeBytes": 878506605
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/rest-center@sha256:f2e422749744de053518d4b53dc48bbd8f0e112567061f72f8e4631c4f120ff9",
+              "192.168.50.28:5000/rest-center:latest",
+              "rest-center:latest"
+            ],
+            "sizeBytes": 788902110
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubia@sha256:0d41ead4dbf022881deafdea4cc3c5a46e0315ebd5805b40f8bbcb7d8b745575",
+              "192.168.50.28:5000/kubia:latest",
+              "luksa/kubia:latest"
+            ],
+            "sizeBytes": 665277552
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/bigdata@sha256:4a05f385780fe506df0a6f519108fff99e9694548d9e8dea939111821d2910da",
+              "192.168.50.28:5000/bigdata:v1.2",
+              "bigdata:latest"
+            ],
+            "sizeBytes": 295152635
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/bigdata@sha256:5f553e53ad0dba912dcc3be704957bd1d6cd8d83dd567f594be17a5046b7fb77",
+              "192.168.50.28:5000/bigdata:v1.1"
+            ],
+            "sizeBytes": 295151837
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/bigdata@sha256:f1134b974ac2eaa4b40488e1cd19ad8759c694724033759c12e79db37120bb0c",
+              "192.168.50.28:5000/bigdata:v1",
+              "bigdatafront:latest"
+            ],
+            "sizeBytes": 295151830
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/etcd@sha256:4afb99b4690b418ffc2ceb67e1a17376457e441c1f09ab55447f0aaf992fa646",
+              "gcr.azk8s.cn/google_containers/etcd:3.4.3-0"
+            ],
+            "sizeBytes": 288426917
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubeisp@sha256:00ce850403ce8e8ea158b1d558fb15e9e75822deb19f86154eacae85209982e6",
+              "192.168.50.28:5000/kubeisp:v1.5",
+              "192.168.50.28:5000/kubeisp:v1.6",
+              "kubeisp:v1.5",
+              "kubeisp:v1.6"
+            ],
+            "sizeBytes": 201886538
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubeisp@sha256:5efab62b91a344325b457a62dc7c935be1d7f8890211847478a0065d6871e793",
+              "192.168.50.28:5000/kubeisp:v1.4",
+              "kubeisp:v1.4"
+            ],
+            "sizeBytes": 201871574
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubeisp@sha256:0d4df55641485253ca2daa467411cde56f7a734dc096a67daeb13a5a7bd459cb",
+              "192.168.50.28:5000/kubeisp:v1.3",
+              "kubeisp:v1.3"
+            ],
+            "sizeBytes": 201848738
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/k8s4cloud@sha256:6f380f3a41e232b84b1baead1f85988cc062689f5052fe3ef9d7c36c8731864f",
+              "192.168.50.28:5000/k8s4cloud:v1",
+              "k8s4cloud:v1"
+            ],
+            "sizeBytes": 172797106
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/kube-apiserver@sha256:e3ec33d533257902ad9ebe3d399c17710e62009201a7202aec941e351545d662",
+              "gcr.azk8s.cn/google_containers/kube-apiserve:v1.17.0",
+              "gcr.azk8s.cn/google_containers/kube-apiserver:v1.17.0"
+            ],
+            "sizeBytes": 170957331
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/kube-controller-manager@sha256:0438efb5098a2ca634ea8c6b0d804742b733d0d13fd53cf62c73e32c659a3c39",
+              "gcr.azk8s.cn/google_containers/kube-controller-manager:v1.17.0"
+            ],
+            "sizeBytes": 160877075
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/kube-proxy@sha256:b2ba9441af30261465e5c41be63e462d0050b09ad280001ae731f399b2b00b75",
+              "gcr.azk8s.cn/google_containers/kube-proxy:v1.17.0"
+            ],
+            "sizeBytes": 115960823
+          },
+          {
+            "names": [
+              "weaveworks/weave-kube:2.6.0"
+            ],
+            "sizeBytes": 114348932
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/redis@sha256:8fc470c15b1ba51c0c4e788fdcc151e05c47874de332a2f86adcae09bbde34b9",
+              "192.168.50.28:5000/redis:latest",
+              "redis:latest"
+            ],
+            "sizeBytes": 98205165
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/kube-scheduler@sha256:5215c4216a65f7e76c1895ba951a12dc1c947904a91810fc66a544ff1d7e87db",
+              "gcr.azk8s.cn/google_containers/kube-scheduler:v1.17.0"
+            ],
+            "sizeBytes": 94431763
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/swagger-ui@sha256:60571d4f8bcfe8247374b1f9c8d8477fee743e28ce477b95ad640e57c5e60a54",
+              "192.168.50.28:5000/swagger-ui:latest",
+              "swaggerapi/swagger-ui:latest"
+            ],
+            "sizeBytes": 67305715
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/v2ray@sha256:978c67f3dba2afb01b710620f8bc0392b36729facad466b90a49f3d7f30404be",
+              "192.168.50.28:5000/v2ray:latest",
+              "v2ray/official:latest"
+            ],
+            "sizeBytes": 67199547
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/alpine-misc@sha256:8c4eaa7201c2e58f328f48439a5eb074c40ca3a48862a4558291010471083148",
+              "192.168.50.28:5000/alpine-misc:v2",
+              "alpine-misc:v2"
+            ],
+            "sizeBytes": 46934579
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/coredns@sha256:7ec975f167d815311a7136c32e70735f0d00b73781365df1befd46ed35bd4fe7",
+              "gcr.azk8s.cn/google_containers/coredns:1.6.5"
+            ],
+            "sizeBytes": 41578211
+          },
+          {
+            "names": [
+              "weaveworks/weave-npc:2.6.0"
+            ],
+            "sizeBytes": 34949961
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/isp-ui@sha256:e2376f4711dec08db4da4467b86c71ae56c8982ea48060f33284baa010e7775c",
+              "192.168.50.28:5000/isp-ui:v2.5",
+              "isp-ui:v2.5"
+            ],
+            "sizeBytes": 27656337
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/isp-ui@sha256:73b831eb758bc5207751093f501350e6738bf883e06537e7b025f5a61d321857",
+              "192.168.50.28:5000/isp-ui:v2.4"
+            ],
+            "sizeBytes": 27647370
+          },
+          {
+            "names": [
+              "isp-ui:v2.4"
+            ],
+            "sizeBytes": 27647370
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/isp-ui@sha256:e97185b6ccd09dc55e4052504f296d58fa8145ebfdfcf94d5d679bb7f7de48ee",
+              "192.168.50.28:5000/isp-ui:2.3",
+              "isp-ui:2.3"
+            ],
+            "sizeBytes": 26451423
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/isp-ui@sha256:bd677b4a4cd9cf364c7380c3d5572e59564472770f21991089f73d70fada8acc",
+              "192.168.50.28:5000/isp-ui:v2.2",
+              "isp-ui:v2.2"
+            ],
+            "sizeBytes": 26427257
+          },
+          {
+            "names": [
+              "registry@sha256:7d081088e4bfd632a88e3f3bcd9e007ef44a796fddfe3261407a3f9f04abe1e7",
+              "registry:2",
+              "registry:latest"
+            ],
+            "sizeBytes": 25769582
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/cloud-ui@sha256:bc48fe17292118af4d0cbd6fe56be16696d9301c2588b2b80ed1f546520c3c28",
+              "192.168.50.28:5000/cloud-ui:v1.0",
+              "cloud-ui:v1.0"
+            ],
+            "sizeBytes": 25697201
+          },
+          {
+            "names": [
+              "alpine@sha256:ab00606a42621fb68f2ed6ad3c88be54397f981a7b70a79db3d1172b11c4367d",
+              "alpine:latest"
+            ],
+            "sizeBytes": 5591300
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/pause@sha256:f78411e19d84a252e53bff71a4407a5686c46983a2c2eeed83929b888179acea",
+              "gcr.azk8s.cn/google_containers/pause:3.1"
+            ],
+            "sizeBytes": 742472
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "k8s-node-1.novalocal",
+        "selfLink": "/api/v1/nodes/k8s-node-1.novalocal",
+        "uid": "fdca2804-92d0-4bc0-9a54-9fd184ee3387",
+        "resourceVersion": "8491525",
+        "creationTimestamp": "2020-01-07T07:30:31Z",
+        "labels": {
+          "beta.kubernetes.io/arch": "amd64",
+          "beta.kubernetes.io/os": "linux",
+          "kubernetes.io/arch": "amd64",
+          "kubernetes.io/hostname": "k8s-node-1.novalocal",
+          "kubernetes.io/os": "linux"
+        },
+        "annotations": {
+          "kubeadm.alpha.kubernetes.io/cri-socket": "/var/run/dockershim.sock",
+          "node.alpha.kubernetes.io/ttl": "0",
+          "volumes.kubernetes.io/controller-managed-attach-detach": "true"
+        }
+      },
+      "spec": {},
+      "status": {
+        "capacity": {
+          "cpu": "4",
+          "ephemeral-storage": "52417516Ki",
+          "hugepages-1Gi": "0",
+          "hugepages-2Mi": "0",
+          "memory": "8009552Ki",
+          "pods": "110"
+        },
+        "allocatable": {
+          "cpu": "4",
+          "ephemeral-storage": "48307982666",
+          "hugepages-1Gi": "0",
+          "hugepages-2Mi": "0",
+          "memory": "7907152Ki",
+          "pods": "110"
+        },
+        "conditions": [
+          {
+            "type": "NetworkUnavailable",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-06T07:34:27Z",
+            "lastTransitionTime": "2020-03-06T07:34:27Z",
+            "reason": "WeaveIsUp",
+            "message": "Weave pod has set this"
+          },
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:41:47Z",
+            "lastTransitionTime": "2020-02-12T07:50:18Z",
+            "reason": "KubeletHasSufficientMemory",
+            "message": "kubelet has sufficient memory available"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:41:47Z",
+            "lastTransitionTime": "2020-02-12T07:50:18Z",
+            "reason": "KubeletHasNoDiskPressure",
+            "message": "kubelet has no disk pressure"
+          },
+          {
+            "type": "PIDPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:41:47Z",
+            "lastTransitionTime": "2020-02-12T07:50:18Z",
+            "reason": "KubeletHasSufficientPID",
+            "message": "kubelet has sufficient PID available"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastHeartbeatTime": "2020-03-09T05:41:47Z",
+            "lastTransitionTime": "2020-02-12T07:50:18Z",
+            "reason": "KubeletReady",
+            "message": "kubelet is posting ready status"
+          }
+        ],
+        "addresses": [
+          {
+            "type": "InternalIP",
+            "address": "192.168.50.113"
+          },
+          {
+            "type": "Hostname",
+            "address": "k8s-node-1.novalocal"
+          }
+        ],
+        "daemonEndpoints": {
+          "kubeletEndpoint": {
+            "Port": 10250
+          }
+        },
+        "nodeInfo": {
+          "machineID": "622ba110a69e24eda2dca57e4d306baa",
+          "systemUUID": "62B43773-FD54-4E94-957D-5EB764C2C615",
+          "bootID": "183688eb-954d-45ce-a21d-6211c91da682",
+          "kernelVersion": "3.10.0-862.2.3.el7.x86_64",
+          "osImage": "CentOS Linux 7 (Core)",
+          "containerRuntimeVersion": "docker://18.6.1",
+          "kubeletVersion": "v1.17.0",
+          "kubeProxyVersion": "v1.17.0",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        },
+        "images": [
+          {
+            "names": [
+              "192.168.50.28:5000/data-query@sha256:97f3932949246d0437db046af28505279db97864bad0314a77dc0d9668af6b0f",
+              "192.168.50.28:5000/data-query:v1.2"
+            ],
+            "sizeBytes": 880637102
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/data-query@sha256:9f41bd16814b162f871a31c27646fd5ef5501247942a7386ca679d8a9c820cb0",
+              "192.168.50.28:5000/data-query:v1"
+            ],
+            "sizeBytes": 878506605
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubia@sha256:0d41ead4dbf022881deafdea4cc3c5a46e0315ebd5805b40f8bbcb7d8b745575",
+              "192.168.50.28:5000/kubia:latest"
+            ],
+            "sizeBytes": 665277552
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/bigdata@sha256:4a05f385780fe506df0a6f519108fff99e9694548d9e8dea939111821d2910da",
+              "192.168.50.28:5000/bigdata:v1.2"
+            ],
+            "sizeBytes": 295152635
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/bigdata@sha256:5f553e53ad0dba912dcc3be704957bd1d6cd8d83dd567f594be17a5046b7fb77",
+              "192.168.50.28:5000/bigdata:v1.1"
+            ],
+            "sizeBytes": 295151837
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubeisp@sha256:00ce850403ce8e8ea158b1d558fb15e9e75822deb19f86154eacae85209982e6",
+              "192.168.50.28:5000/kubeisp:v1.6"
+            ],
+            "sizeBytes": 201886538
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubeisp@sha256:9c768fa3090cfb6a3dd97ef4e9b989f2e6cfd40d5e5dbc31154a8701b13881bf",
+              "192.168.50.28:5000/kubeisp:v1.5"
+            ],
+            "sizeBytes": 201884620
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/k8s4cloud@sha256:9b560d76413f8c1d8002232b1c1296258041729f3ee726dc056e2a4a83b03b16",
+              "192.168.50.28:5000/k8s4cloud:v1.2"
+            ],
+            "sizeBytes": 173443652
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/k8s4cloud@sha256:6646cdc32d5f2695dd984e963cb94c40feed1e78782b1fae21ad3856c0d320a4",
+              "192.168.50.28:5000/k8s4cloud:v1.1"
+            ],
+            "sizeBytes": 173428222
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/k8s4cloud@sha256:6f380f3a41e232b84b1baead1f85988cc062689f5052fe3ef9d7c36c8731864f",
+              "192.168.50.28:5000/k8s4cloud:v1"
+            ],
+            "sizeBytes": 172797106
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/kube-proxy:v1.17.0"
+            ],
+            "sizeBytes": 115960823
+          },
+          {
+            "names": [
+              "weaveworks/weave-kube:2.6.0"
+            ],
+            "sizeBytes": 114348932
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/redis@sha256:8fc470c15b1ba51c0c4e788fdcc151e05c47874de332a2f86adcae09bbde34b9",
+              "192.168.50.28:5000/redis:latest"
+            ],
+            "sizeBytes": 98205165
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/swagger-ui@sha256:60571d4f8bcfe8247374b1f9c8d8477fee743e28ce477b95ad640e57c5e60a54",
+              "192.168.50.28:5000/swagger-ui:latest"
+            ],
+            "sizeBytes": 67305715
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/v2ray@sha256:978c67f3dba2afb01b710620f8bc0392b36729facad466b90a49f3d7f30404be",
+              "192.168.50.28:5000/v2ray:latest"
+            ],
+            "sizeBytes": 67199547
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/alpine-misc@sha256:8c4eaa7201c2e58f328f48439a5eb074c40ca3a48862a4558291010471083148",
+              "192.168.50.28:5000/alpine-misc:v2"
+            ],
+            "sizeBytes": 46934579
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/coredns:1.6.5"
+            ],
+            "sizeBytes": 41578211
+          },
+          {
+            "names": [
+              "192.168.50.116:5000/metrics-server-amd64@sha256:c9c4e95068b51d6b33a9dccc61875df07dc650abbf4ac1a19d58b4628f89288b",
+              "192.168.50.116:5000/metrics-server-amd64:v0.3.6"
+            ],
+            "sizeBytes": 39944451
+          },
+          {
+            "names": [
+              "weaveworks/weave-npc:2.6.0"
+            ],
+            "sizeBytes": 34949961
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/isp-ui@sha256:e2376f4711dec08db4da4467b86c71ae56c8982ea48060f33284baa010e7775c",
+              "192.168.50.28:5000/isp-ui:v2.5"
+            ],
+            "sizeBytes": 27656337
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/isp-ui@sha256:bd677b4a4cd9cf364c7380c3d5572e59564472770f21991089f73d70fada8acc",
+              "192.168.50.28:5000/isp-ui:v2.2"
+            ],
+            "sizeBytes": 26427257
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/cloud-ui@sha256:bc48fe17292118af4d0cbd6fe56be16696d9301c2588b2b80ed1f546520c3c28",
+              "192.168.50.28:5000/cloud-ui:v1.0"
+            ],
+            "sizeBytes": 25697201
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/pause:3.1"
+            ],
+            "sizeBytes": 742472
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "k8s-node-2.novalocal",
+        "selfLink": "/api/v1/nodes/k8s-node-2.novalocal",
+        "uid": "bae46f2b-deab-407c-8d57-6cef7be79bf4",
+        "resourceVersion": "8491913",
+        "creationTimestamp": "2020-01-07T07:30:39Z",
+        "labels": {
+          "beta.kubernetes.io/arch": "amd64",
+          "beta.kubernetes.io/os": "linux",
+          "kubernetes.io/arch": "amd64",
+          "kubernetes.io/hostname": "k8s-node-2.novalocal",
+          "kubernetes.io/os": "linux"
+        },
+        "annotations": {
+          "kubeadm.alpha.kubernetes.io/cri-socket": "/var/run/dockershim.sock",
+          "node.alpha.kubernetes.io/ttl": "0",
+          "volumes.kubernetes.io/controller-managed-attach-detach": "true"
+        }
+      },
+      "spec": {},
+      "status": {
+        "capacity": {
+          "cpu": "4",
+          "ephemeral-storage": "52417516Ki",
+          "hugepages-1Gi": "0",
+          "hugepages-2Mi": "0",
+          "memory": "8009560Ki",
+          "pods": "110"
+        },
+        "allocatable": {
+          "cpu": "4",
+          "ephemeral-storage": "48307982666",
+          "hugepages-1Gi": "0",
+          "hugepages-2Mi": "0",
+          "memory": "7907160Ki",
+          "pods": "110"
+        },
+        "conditions": [
+          {
+            "type": "NetworkUnavailable",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-06T07:38:51Z",
+            "lastTransitionTime": "2020-03-06T07:38:51Z",
+            "reason": "WeaveIsUp",
+            "message": "Weave pod has set this"
+          },
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:44:25Z",
+            "lastTransitionTime": "2020-02-12T07:49:24Z",
+            "reason": "KubeletHasSufficientMemory",
+            "message": "kubelet has sufficient memory available"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:44:25Z",
+            "lastTransitionTime": "2020-02-12T07:49:24Z",
+            "reason": "KubeletHasNoDiskPressure",
+            "message": "kubelet has no disk pressure"
+          },
+          {
+            "type": "PIDPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2020-03-09T05:44:25Z",
+            "lastTransitionTime": "2020-02-12T07:49:24Z",
+            "reason": "KubeletHasSufficientPID",
+            "message": "kubelet has sufficient PID available"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastHeartbeatTime": "2020-03-09T05:44:25Z",
+            "lastTransitionTime": "2020-03-06T07:38:48Z",
+            "reason": "KubeletReady",
+            "message": "kubelet is posting ready status"
+          }
+        ],
+        "addresses": [
+          {
+            "type": "InternalIP",
+            "address": "192.168.50.23"
+          },
+          {
+            "type": "Hostname",
+            "address": "k8s-node-2.novalocal"
+          }
+        ],
+        "daemonEndpoints": {
+          "kubeletEndpoint": {
+            "Port": 10250
+          }
+        },
+        "nodeInfo": {
+          "machineID": "622ba110a69e24eda2dca57e4d306baa",
+          "systemUUID": "4D3C9C65-47E0-43D1-99E6-521AEF892C70",
+          "bootID": "4cde7b7f-9cc4-4a42-afa2-3f63a806f249",
+          "kernelVersion": "3.10.0-862.2.3.el7.x86_64",
+          "osImage": "CentOS Linux 7 (Core)",
+          "containerRuntimeVersion": "docker://18.6.1",
+          "kubeletVersion": "v1.17.0",
+          "kubeProxyVersion": "v1.17.0",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        },
+        "images": [
+          {
+            "names": [
+              "192.168.50.28:5000/data-query@sha256:225ee835c5b8280c7a0e1e04ab811130050af95535d056a17a53c143c68b12e5",
+              "192.168.50.28:5000/data-query:v1.1"
+            ],
+            "sizeBytes": 878726467
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/data-query@sha256:9f41bd16814b162f871a31c27646fd5ef5501247942a7386ca679d8a9c820cb0",
+              "192.168.50.28:5000/data-query:v1"
+            ],
+            "sizeBytes": 878506605
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/rest-center@sha256:f2e422749744de053518d4b53dc48bbd8f0e112567061f72f8e4631c4f120ff9",
+              "192.168.50.28:5000/rest-center:latest"
+            ],
+            "sizeBytes": 788902110
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/bigdata@sha256:4a05f385780fe506df0a6f519108fff99e9694548d9e8dea939111821d2910da",
+              "192.168.50.28:5000/bigdata:v1.2"
+            ],
+            "sizeBytes": 295152635
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/bigdata@sha256:5f553e53ad0dba912dcc3be704957bd1d6cd8d83dd567f594be17a5046b7fb77",
+              "192.168.50.28:5000/bigdata:v1.1"
+            ],
+            "sizeBytes": 295151837
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/bigdata@sha256:f1134b974ac2eaa4b40488e1cd19ad8759c694724033759c12e79db37120bb0c",
+              "192.168.50.28:5000/bigdata:v1"
+            ],
+            "sizeBytes": 295151830
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubeisp@sha256:5efab62b91a344325b457a62dc7c935be1d7f8890211847478a0065d6871e793",
+              "192.168.50.28:5000/kubeisp:v1.4"
+            ],
+            "sizeBytes": 201871574
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/kubeisp@sha256:0d4df55641485253ca2daa467411cde56f7a734dc096a67daeb13a5a7bd459cb",
+              "192.168.50.28:5000/kubeisp:v1.3"
+            ],
+            "sizeBytes": 201848738
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/kube-proxy:v1.17.0"
+            ],
+            "sizeBytes": 115960823
+          },
+          {
+            "names": [
+              "weaveworks/weave-kube:2.6.0"
+            ],
+            "sizeBytes": 114348932
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/redis@sha256:8fc470c15b1ba51c0c4e788fdcc151e05c47874de332a2f86adcae09bbde34b9"
+            ],
+            "sizeBytes": 98205165
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/redis@sha256:ee1d00c5250b5a886b09be2d5f9506add35dfb557f1ef37a7e4b8f0138f32956",
+              "192.168.50.28:5000/redis:latest"
+            ],
+            "sizeBytes": 98205103
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/swagger-ui@sha256:60571d4f8bcfe8247374b1f9c8d8477fee743e28ce477b95ad640e57c5e60a54",
+              "192.168.50.28:5000/swagger-ui:latest"
+            ],
+            "sizeBytes": 67305715
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/alpine-misc@sha256:8c4eaa7201c2e58f328f48439a5eb074c40ca3a48862a4558291010471083148",
+              "192.168.50.28:5000/alpine-misc:v2"
+            ],
+            "sizeBytes": 46934579
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/coredns:1.6.5"
+            ],
+            "sizeBytes": 41578211
+          },
+          {
+            "names": [
+              "weaveworks/weave-npc:2.6.0"
+            ],
+            "sizeBytes": 34949961
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/isp-ui@sha256:e97185b6ccd09dc55e4052504f296d58fa8145ebfdfcf94d5d679bb7f7de48ee",
+              "192.168.50.28:5000/isp-ui:2.3"
+            ],
+            "sizeBytes": 26451423
+          },
+          {
+            "names": [
+              "192.168.50.28:5000/isp-ui@sha256:bd677b4a4cd9cf364c7380c3d5572e59564472770f21991089f73d70fada8acc",
+              "192.168.50.28:5000/isp-ui:v2.2"
+            ],
+            "sizeBytes": 26427257
+          },
+          {
+            "names": [
+              "gcr.azk8s.cn/google_containers/pause:3.1"
+            ],
+            "sizeBytes": 742472
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,240 @@
+openapi: 3.0.0
+info:
+  title: docker registry
+  version: 1.0
+servers:
+  - url: http://192.168.50.28:5000/v2
+  - url: https://index.docker.io/v2
+paths:
+  /token:
+    servers:
+      - url: https://auth.docker.io
+    get:
+      parameters:
+        - in: query
+          name: service
+          schema:
+            type: string
+        - in: query
+          name: scope
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              examples:
+                success:
+                  value:
+                    token: eyJhbGciOiJSUz
+                    access_token: eyJhbGciOiJSUz
+                    expires_in: 300
+                    issued_at: 2020-02-28T06:40:51.174863234Z
+              schema:
+                $ref: '#/components/schemas/DockerAuth'
+  /_catalog:
+    get:
+      description: Listing Repositories
+      parameters:
+        - in: query
+          name: n
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              examples:
+                success:
+                  value:
+                    repositories:
+                      - alpine
+                      - redis
+                      - mysql
+                error:
+                  value:
+              schema:
+                $ref: '#/components/schemas/Catalog'
+  /{name}/tags/list:
+    get:
+      description: Listing Image Tags
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+        - in: query
+          name: n
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              examples:
+                success:
+                  value:
+                    name: redis
+                    tags:
+                      - 4.5
+                      - 4.6
+                      - latest
+                error:
+                  value:
+              schema:
+                $ref: '#/components/schemas/Tags'
+
+  /{name}/manifests/{reference}:
+    get:
+      description: Pulling an Image Manifest
+      operationId: getManifests
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+        - in: path
+          name: reference
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/V2ManifestResult'
+    delete:
+      description: delete image
+      operationId: deleteManifests
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+        - in: path
+          name: reference
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Accept
+components:
+  schemas:
+    NodeMetricsList:
+      type: object
+      properties:
+        kind:
+          type: string
+        apiVersion:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              metadata:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  selfLink:
+                    type: string
+                  creationTimestamp:
+                    type: string
+              timestamp:
+                type: string
+              window:
+                type: string
+              usage:
+                type: object
+                properties:
+                  cpu:
+                    type: string
+                  memory:
+                    type: string
+    DockerAuth:
+      type: object
+      properties:
+        token:
+          type: string
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+        issued_at:
+          type: string
+          format: date-time
+    V1ManifestResult:
+      type: object
+      properties:
+        schemaVersion:
+          type: integer
+        name:
+          type: string
+        tag:
+          type: string
+        fsLayers:
+          type: array
+          items:
+            type: object
+            properties:
+              blobSum:
+                type: string
+
+    V2ManifestResult:
+      type: object
+      properties:
+        schemaVersion:
+          type: integer
+        mediaType:
+          type: string
+        config:
+          $ref: '#/components/schemas/Manifest'
+        layers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Manifest'
+    Manifest:
+      type: object
+      properties:
+        mediaType:
+          type: string
+        size:
+          type: integer
+          format: int64
+        digest:
+          type: string
+    Tags:
+      type: object
+      properties:
+        name:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    Catalog:
+      type: object
+      properties:
+        repositories:
+          type: array
+          items:
+            type: string
+
+    ManifestMediaType:
+      type: string
+      enum:
+        - application/vnd.docker.distribution.manifest.v1+json
+        - application/vnd.docker.distribution.manifest.v2+json
+        - application/vnd.docker.distribution.manifest.list.v2+json
+        - application/vnd.docker.container.image.v1+json
+        - application/vnd.docker.image.rootfs.diff.tar.gzip
+        - application/vnd.docker.image.rootfs.foreign.diff.tar.gzip

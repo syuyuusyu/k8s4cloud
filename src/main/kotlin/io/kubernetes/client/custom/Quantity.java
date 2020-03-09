@@ -101,7 +101,7 @@ public class Quantity {
     public static class QuntitySerializer extends StdSerializer<Quantity> {
 
         public QuntitySerializer() {
-            this(null);
+            this(Quantity.class);
         }
 
         public QuntitySerializer(Class<Quantity> t) {
@@ -109,8 +109,8 @@ public class Quantity {
         }
 
         @Override
-        public void serialize(Quantity value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-            gen.writeString(new QuantityFormatter().format(value));
+        public void serialize(Quantity quantity, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            gen.writeString(quantity != null ? quantity.toSuffixedString():null);
 
         }
     }

@@ -1,6 +1,5 @@
 package bzh.cloud.k8s.config
 
-import ind.syu.kubeIsp.utils.SpringUtil
 import io.kubernetes.client.ProtoClient
 import io.kubernetes.client.custom.V1Patch
 import io.kubernetes.client.openapi.ApiClient
@@ -9,6 +8,9 @@ import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
+import okhttp3.OkHttpClient
+import org.openapitools.client.api.DefaultApi
+import org.openapitools.client.model.ManifestMediaType
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.support.BeanDefinitionDsl
 import org.springframework.web.reactive.HandlerMapping
@@ -21,8 +23,10 @@ import org.springframework.web.reactive.socket.server.upgrade.ReactorNettyReques
 import reactor.core.scheduler.Scheduler
 import reactor.core.scheduler.Schedulers
 import java.io.FileReader
-import java.util.HashMap
-
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.util.*
+import kotlin.collections.ArrayList
 
 
 @ConfigurationProperties(prefix = "self")
@@ -32,7 +36,12 @@ class KubeProperties (
         val jwtkey:String,
         val allowMethods:String,
         val allowHeads:String,
-        val allowOrigin:String
+        val allowOrigin:String,
+        val httpProxy:String,
+        val registryUrl:String,
+        val officalRegistryUrl:String,
+        val authRegistryUrl:String,
+        val tempFileDir:String
 )
 
 
@@ -95,6 +104,44 @@ fun beans() = org.springframework.context.support.beans {
         handlerMapping
     }
 
+    bean<Proxy>(){
+        val httpProxy = ref<KubeProperties>().httpProxy
+        val port = Regex(":(\\d+)$").find(httpProxy)!!.groupValues[1].toInt()
+        val host= httpProxy.replace(":"+port,"")
+        Proxy(Proxy.Type.HTTP,InetSocketAddress(host, port))
+    }
+
+
+    bean<DefaultApi>("dockerHubAuthApi"){
+        val proxy = ref<Proxy>()
+        DefaultApi().apply {
+            apiClient = org.openapitools.client.ApiClient().apply {
+                basePath = ref<KubeProperties>().authRegistryUrl
+                httpClient = OkHttpClient.Builder().proxy(proxy).build()
+
+            }
+        }
+    }
+
+    bean<DefaultApi>("dockerHubApi"){
+        val proxy = ref<Proxy>()
+        DefaultApi().apply {
+            apiClient = org.openapitools.client.ApiClient().apply {
+                basePath = ref<KubeProperties>().officalRegistryUrl
+                httpClient = OkHttpClient.Builder().proxy(proxy).build()
+            }
+        }
+    }
+
+    bean<DefaultApi>("localRegistryApi"){
+        DefaultApi().apply {
+            apiClient = org.openapitools.client.ApiClient().apply {
+                basePath = ref<KubeProperties>().registryUrl
+            }
+        }
+    }
+
+
 
 
 }
@@ -129,3 +176,5 @@ class OperateResult(){
     var success:Boolean=false
     var msg:String=""
 }
+
+

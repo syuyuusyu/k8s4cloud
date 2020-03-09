@@ -1,0 +1,339 @@
+{
+  "kind": "PodList",
+  "apiVersion": "v1",
+  "metadata": {
+    "selfLink": "/api/v1/namespaces/cloud-ns/pods",
+    "resourceVersion": "8504987"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "cloud-ui-dep-59bf875b8f-q4dbw",
+        "generateName": "cloud-ui-dep-59bf875b8f-",
+        "namespace": "cloud-ns",
+        "selfLink": "/api/v1/namespaces/cloud-ns/pods/cloud-ui-dep-59bf875b8f-q4dbw",
+        "uid": "8a25ac70-8d16-4919-a5e6-4e0d9891a776",
+        "resourceVersion": "7878287",
+        "creationTimestamp": "2020-02-24T07:39:23Z",
+        "labels": {
+          "app": "cloud-ui",
+          "pod-template-hash": "59bf875b8f"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "cloud-ui-dep-59bf875b8f",
+            "uid": "e8f82d90-e390-4105-8eea-6b83854ad01a",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "cloud-conf",
+            "configMap": {
+              "name": "cloud-config",
+              "defaultMode": 420
+            }
+          },
+          {
+            "name": "default-token-xstbn",
+            "secret": {
+              "secretName": "default-token-xstbn",
+              "defaultMode": 420
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "cloud-ui",
+            "image": "192.168.50.28:5000/cloud-ui:v1.0",
+            "command": [
+              "nginx",
+              "-g",
+              "daemon off;"
+            ],
+            "ports": [
+              {
+                "name": "ui",
+                "containerPort": 3000,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "cloud-conf",
+                "mountPath": "/etc/nginx/nginx.conf",
+                "subPath": "nginx.conf"
+              },
+              {
+                "name": "cloud-conf",
+                "mountPath": "/var/www/global.js",
+                "subPath": "global.js"
+              },
+              {
+                "name": "default-token-xstbn",
+                "readOnly": true,
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "terminationGracePeriodSeconds": 30,
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccountName": "default",
+        "serviceAccount": "default",
+        "nodeName": "k8s-node-1.novalocal",
+        "securityContext": {},
+        "schedulerName": "default-scheduler",
+        "tolerations": [
+          {
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "effect": "NoExecute",
+            "tolerationSeconds": 300
+          },
+          {
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "effect": "NoExecute",
+            "tolerationSeconds": 300
+          }
+        ],
+        "priority": 0,
+        "enableServiceLinks": true
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-02-24T07:39:23Z"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-03-06T07:34:28Z"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-03-06T07:34:28Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-02-24T07:39:23Z"
+          }
+        ],
+        "hostIP": "192.168.50.113",
+        "podIP": "10.44.0.2",
+        "podIPs": [
+          {
+            "ip": "10.44.0.2"
+          }
+        ],
+        "startTime": "2020-02-24T07:39:23Z",
+        "containerStatuses": [
+          {
+            "name": "cloud-ui",
+            "state": {
+              "running": {
+                "startedAt": "2020-03-06T07:34:28Z"
+              }
+            },
+            "lastState": {
+              "terminated": {
+                "exitCode": 0,
+                "reason": "Completed",
+                "startedAt": "2020-02-24T07:39:25Z",
+                "finishedAt": "2020-03-06T07:33:57Z",
+                "containerID": "docker://137d2b9e4bce49341b89e262ce00ee519944c52e172d656bcb30b5308924376d"
+              }
+            },
+            "ready": true,
+            "restartCount": 1,
+            "image": "192.168.50.28:5000/cloud-ui:v1.0",
+            "imageID": "docker-pullable://192.168.50.28:5000/cloud-ui@sha256:bc48fe17292118af4d0cbd6fe56be16696d9301c2588b2b80ed1f546520c3c28",
+            "containerID": "docker://73a978af6b6ffbb6816bca913e6cd4ea9d74656a5857dd0d2977e1fd79114958",
+            "started": true
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    },
+    {
+      "metadata": {
+        "name": "k8s4cloud-deploy-759ff6d9f6-mc7t7",
+        "generateName": "k8s4cloud-deploy-759ff6d9f6-",
+        "namespace": "cloud-ns",
+        "selfLink": "/api/v1/namespaces/cloud-ns/pods/k8s4cloud-deploy-759ff6d9f6-mc7t7",
+        "uid": "2dd9b0b2-318c-4ea3-95b9-5e51758ce248",
+        "resourceVersion": "8498618",
+        "creationTimestamp": "2020-03-09T06:30:14Z",
+        "labels": {
+          "app": "k8s4cloud",
+          "pod-template-hash": "759ff6d9f6"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "k8s4cloud-deploy-759ff6d9f6",
+            "uid": "280c590a-d8fa-4276-ba69-1132fdeec995",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "cloud-v",
+            "configMap": {
+              "name": "cloud-config",
+              "defaultMode": 420
+            }
+          },
+          {
+            "name": "default-token-xstbn",
+            "secret": {
+              "secretName": "default-token-xstbn",
+              "defaultMode": 420
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "k8s4cloud",
+            "image": "192.168.50.28:5000/k8s4cloud:v1.3",
+            "command": [
+              "java",
+              "-jar",
+              "k8s4cloud.jar"
+            ],
+            "ports": [
+              {
+                "containerPort": 8002,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "cloud-v",
+                "mountPath": "application.yaml",
+                "subPath": "application.yaml"
+              },
+              {
+                "name": "cloud-v",
+                "mountPath": "kubeconfig",
+                "subPath": "kubeconfig"
+              },
+              {
+                "name": "default-token-xstbn",
+                "readOnly": true,
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "terminationGracePeriodSeconds": 30,
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccountName": "default",
+        "serviceAccount": "default",
+        "nodeName": "k8s-node-1.novalocal",
+        "securityContext": {},
+        "schedulerName": "default-scheduler",
+        "tolerations": [
+          {
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "effect": "NoExecute",
+            "tolerationSeconds": 300
+          },
+          {
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "effect": "NoExecute",
+            "tolerationSeconds": 300
+          }
+        ],
+        "priority": 0,
+        "enableServiceLinks": true
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-03-09T06:30:14Z"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-03-09T06:30:20Z"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-03-09T06:30:20Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-03-09T06:30:14Z"
+          }
+        ],
+        "hostIP": "192.168.50.113",
+        "podIP": "10.44.0.5",
+        "podIPs": [
+          {
+            "ip": "10.44.0.5"
+          }
+        ],
+        "startTime": "2020-03-09T06:30:14Z",
+        "containerStatuses": [
+          {
+            "name": "k8s4cloud",
+            "state": {
+              "running": {
+                "startedAt": "2020-03-09T06:30:19Z"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "192.168.50.28:5000/k8s4cloud:v1.3",
+            "imageID": "docker-pullable://192.168.50.28:5000/k8s4cloud@sha256:e03532f4c8266a8ad65d8d4f67d1a2f68d33157062cfcedf6f762539e6c4bf58",
+            "containerID": "docker://480a232ff1916a77928b981d547916a554f3c3d8eb904eca0afcd7a8d277bad7",
+            "started": true
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    }
+  ]
+}
