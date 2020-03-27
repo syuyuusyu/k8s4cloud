@@ -12,20 +12,25 @@ logging:
     ind.syu: debug
     io.kubernetes: info
     org:
-      springframework: info
-
+      springframework: debug
 
 server:
   port: 8002
 
 
 self:
-  registryUrl: http://192.168.50.28:5000/v2
-  #registryUrl: http://127.0.0.1:5000/v2
-  officalRegistryUrl: https://index.docker.io/v2
+  registryUrl: http://192.168.50.28:5000
+  #registryUrl: http://127.0.0.1:5000
+
+  #officalRegistryUrl: https://index.docker.io
+  officalRegistryUrl: https://dockerhub.azk8s.cn
+  #officalRegistryUrl: https://registry.docker-cn.com
   authRegistryUrl: https://auth.docker.io
   httpProxy: 127.0.0.1:1087
   tempFileDir: /tmp/registry/
+  enableProxy: true
+  needProxyUrl:
+    - https://index.docker.io
 
   kubeConfigPath: /Users/syu/.kube/config-company
   #kubeConfigPath: /Users/syu/.kube/config
@@ -37,6 +42,7 @@ self:
   allowHeads: access-token,_token,DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range,Referer,Sec-Fetch-Mode
   ignorePath:
     - ^/kube
+    - ^/v2/kube
     - ^/pod-terminal
     - ^/registry
 

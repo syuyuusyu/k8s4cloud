@@ -3,8 +3,8 @@ info:
   title: docker registry
   version: 1.0
 servers:
-  - url: http://192.168.50.28:5000/v2
-  - url: https://index.docker.io/v2
+  - url: http://192.168.50.28:5000
+  - url: https://index.docker.io
 paths:
   /token:
     servers:
@@ -33,7 +33,7 @@ paths:
                     issued_at: 2020-02-28T06:40:51.174863234Z
               schema:
                 $ref: '#/components/schemas/DockerAuth'
-  /_catalog:
+  /v2/_catalog:
     get:
       description: Listing Repositories
       parameters:
@@ -57,7 +57,7 @@ paths:
                   value:
               schema:
                 $ref: '#/components/schemas/Catalog'
-  /{name}/tags/list:
+  /v2/{name}/tags/list:
     get:
       description: Listing Image Tags
       parameters:
@@ -86,8 +86,28 @@ paths:
                   value:
               schema:
                 $ref: '#/components/schemas/Tags'
+  /v2/{name}/manifests/{reference}:
+    put:
+      description: update manifests
+      operationId: putManifests
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+        - in: path
+          name: reference
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/vnd.docker.distribution.manifest.v2+json:
+            schema:
+              $ref: '#/components/schemas/V2ManifestResult'
+      responses:
+        '201':
+          description: Created
 
-  /{name}/manifests/{reference}:
     get:
       description: Pulling an Image Manifest
       operationId: getManifests
@@ -128,38 +148,6 @@ paths:
           description: Accept
 components:
   schemas:
-    NodeMetricsList:
-      type: object
-      properties:
-        kind:
-          type: string
-        apiVersion:
-          type: string
-        items:
-          type: array
-          items:
-            type: object
-            properties:
-              metadata:
-                type: object
-                properties:
-                  name:
-                    type: string
-                  selfLink:
-                    type: string
-                  creationTimestamp:
-                    type: string
-              timestamp:
-                type: string
-              window:
-                type: string
-              usage:
-                type: object
-                properties:
-                  cpu:
-                    type: string
-                  memory:
-                    type: string
     DockerAuth:
       type: object
       properties:

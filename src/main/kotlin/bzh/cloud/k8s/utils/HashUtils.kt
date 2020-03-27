@@ -1,21 +1,21 @@
 import java.io.BufferedInputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.security.MessageDigest
 
-private const val HASH = "SHA-1"
 
-fun sha1sum(data: ByteArray): String {
+private  val HASH = "SHA256"
+
+fun sha256(data: ByteArray): String {
     val md = MessageDigest.getInstance(HASH);
     md.update(data)
     return array2str(md.digest())
 }
 
-fun sha1sum(filePath: Path): String {
+fun sha256(filePath: Path): String {
     val md = MessageDigest.getInstance(HASH);
-
-    var buffer = ByteArray(1024 * 100)
-
+    val buffer = ByteArray(1024 * 100)
     BufferedInputStream(Files.newInputStream(filePath)).use {
         var i = it.read(buffer)
         while (i != -1) {
@@ -24,6 +24,12 @@ fun sha1sum(filePath: Path): String {
         }
     }
     return array2str(md.digest())
+}
+
+fun sha256(filePath:String):String{
+    val path = Paths.get(filePath)
+    println(path)
+    return sha256(path)
 }
 
 /**
@@ -36,3 +42,5 @@ fun array2str(data: ByteArray): String {
     }
     return r.toString()
 }
+
+

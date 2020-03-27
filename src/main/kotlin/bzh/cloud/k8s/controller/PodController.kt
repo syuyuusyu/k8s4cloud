@@ -2,42 +2,44 @@ package bzh.cloud.k8s.controller
 
 
 
+import bzh.cloud.k8s.config.watchClient
+import bzh.cloud.k8s.expansion.watchLog
 import bzh.cloud.k8s.service.PodService
-import io.kubernetes.client.*
-
-
-import org.springframework.web.bind.annotation.*
-import reactor.core.publisher.Flux
-
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.http.MediaType
-import java.time.Duration
-
-import io.kubernetes.client.util.ClientBuilder
-import io.kubernetes.client.util.KubeConfig
-import org.springframework.beans.factory.annotation.Value
-import java.io.FileReader
-
+import com.google.gson.reflect.TypeToken
+import io.kubernetes.client.PodLogs
 import io.kubernetes.client.custom.V1Patch
-
+import io.kubernetes.client.openapi.ApiCallback
 import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.ApiException
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.models.V1NamespaceBuilder
 import io.kubernetes.client.openapi.models.V1Pod
-
-import kotlin.collections.HashMap
+import io.kubernetes.client.util.ClientBuilder
+import io.kubernetes.client.util.KubeConfig
+import io.kubernetes.client.util.Watch
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.MediaType
 import org.springframework.util.StringUtils
-
+import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Flux
+import java.io.FileReader
+import java.io.IOException
+import java.time.Duration
+import java.util.concurrent.Executor
 
 
 @RestController
-@RequestMapping("/kube/Pod")
+@RequestMapping("/kube")
 class PodController(
         val kubeApi: CoreV1Api,
         val podService: PodService,
-        val apiClient: ApiClient
+        val apiClient: ApiClient,
+        val threadPool : Executor
 ) {
 
     @Value("\${self.kubeConfigPath}")
@@ -57,7 +59,7 @@ class PodController(
         }
     }
 
-    @GetMapping("/{ns}")
+    @GetMapping("/namespace/{ns}/Pod")
     fun list(@PathVariable ns: String): Flux<Map<String, Any?>> {
         //val list = kubeApi.listPodForAllNamespaces(null, null, null, null, null, "true", null, null,null)
         this.createNsifNotExist(ns)
@@ -67,46 +69,24 @@ class PodController(
     }
 
 
-//    @GetMapping("/{ns}",produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-//    fun list(@PathVariable ns: String): Flux<Map<String, Any?>> {
-//        val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath))).build()
-//        val httpClient = client.httpClient.newBuilder().readTimeout(10, TimeUnit.SECONDS).build()
-//        client.httpClient = httpClient
-//        Configuration.setDefaultApiClient(client)
-//
-//        val api = CoreV1Api()
-//
-//        val watch = Watch.createWatch<V1Pod>(
-//                client,
-//                api.listNamespacedPodCall(ns, null, null, null, null, null, 5, null, null, java.lang.Boolean.TRUE, null),
-//                object : TypeToken<Watch.Response<V1Pod>>() {
-//
-//                }.getType())
-//        return Flux.create<Map<String, Any?>> { sink->
-//            watch.forEach {
-//                log.info("{}",it.`object`.metadata?.name )
-//                var obj = it.`object`
-//                val map = HashMap<String,Any?>()
-//                map["name"] = obj.metadata?.name
-//                map["ns"] = obj.metadata?.namespace
-//                map["labels"] = obj.metadata?.labels
-//                map["status"] = obj.status?.phase
-//                obj.status?.containerStatuses?.forEach { state->
-//                    state.state?.running
-//                }
-//                map["uid"] = obj.metadata?.uid
-//                map["containers"] = obj.spec?.containers?.map { con->
-//                    val c= HashMap<String,Any?>()
-//                    c["name"] = con.name
-//                    c["image"]= con.image
-//                    c
-//                }
-//                sink.next(map)
-//            }
-//        }.doFinally {
-//            watch.close()
-//        }
-//    }
+    @GetMapping("/watch/namespace/{ns}/Pod",produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
+    fun watchList(@PathVariable ns: String): Flux<V1Pod> {
+        val (client,api) = watchClient()
+
+        val watch = Watch.createWatch<V1Pod>(
+                client,
+                api.listNamespacedPodCall(ns, null, null, null, null, null, 5, null, null, java.lang.Boolean.TRUE, null),
+                object : TypeToken<Watch.Response<V1Pod>>() {}.type)
+        return Flux.create<V1Pod> { sink->
+            threadPool.execute {
+                watch.forEach {
+                    sink.next(it.`object`)
+                }
+            }
+        }.doFinally {
+            watch.close()
+        }
+    }
 
     @GetMapping(path = ["/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
     fun log(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
@@ -124,46 +104,38 @@ class PodController(
                 }
     }
 
-//    @GetMapping(path = ["/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-//    fun log2(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
-//        val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath))).build()
-//        Configuration.setDefaultApiClient(client)
-//        //val coreApi = CoreV1Api(apiClient)
-//        val logs = PodLogs()
-//        //val input = logs.streamNamespacedPodLog(ns,pname,if (cname == "undefined") null else cname);
-//        val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
-//                Int.MAX_VALUE, null, false, Int.MAX_VALUE, 999, false)
-//        val time = Date().getTime() / 1000
-//        log.debug("time {}",time)
-//        val input = logs.streamNamespacedPodLog(ns,pname,if (cname == "undefined") null else cname,2,10,false)
-//        var flag = true
-//        var heartbeat = false
-//        return Flux.interval(Duration.ofSeconds(2))
+    @GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
+    fun log2(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
+        threadPool.execute{
+            kubeApi.watchLog(pname,ns,if (cname == "undefined") null else cname)
+        }
+
+
+        return Flux.interval(Duration.ofSeconds(2))
+                .map {
+                    "aaa"
+                }.doFinally {
+                    log.debug("log stream close!!")
+                }
+//        val response = call.execute()
+//        log.info("11111111111111112")
+//        log.info("{}",response.isSuccessful)
+//        if(!response.isSuccessful){
+//            return Flux.empty()
+//        }
+//        val input =response.body()?.byteStream()!!;
+//        log.info("{}",input.available())
+//        return Flux.interval(Duration.ofMillis(1000))
+//                .map {input.available()}.filter { it>0 }
 //                .map {
-//                    if( it == 1L) flag = false
-//                    if( it%20 == 0L) heartbeat=true else heartbeat=false
-//                    val count = input.available()
-//                    log.debug("count:{}",count)
-//                    count
-//                }.filter { flag || heartbeat || it>0 }
-//                .map {
-//                    if(flag){
-//                        return@map firstlog
-//                    }
-//                    if( heartbeat && it==0 ){
-//                        return@map ""
-//                    }
+//                    log.info("{}",it)
 //                    val byteArray = ByteArray(it)
 //                    input.read(byteArray)
-//                    log.debug("read log:{}",String(byteArray))
 //                    String(byteArray)
-//                }.doFinally {
-//                    log.debug("close log stream")
-//                    input.close()
 //                }
-//    }
+    }
 
-        @GetMapping("/{ns}/{podName}")
+        @GetMapping("/namespace/{ns}/Pod/{podName}")
         fun podJson(@PathVariable ns: String, @PathVariable podName: String): V1Pod {
             val pod = kubeApi.readNamespacedPod(podName, ns, "true", false, false)
             pod.metadata?.creationTimestamp = null
@@ -172,7 +144,7 @@ class PodController(
 
         }
 
-        @DeleteMapping("/{ns}/{podName}")
+        @DeleteMapping("/namespace/{ns}/Pod/{podName}")
         fun delete(@PathVariable ns: String, @PathVariable podName: String): Map<String, Any> {
             val result = HashMap<String, Any>()
             try {
@@ -190,7 +162,7 @@ class PodController(
             return result;
         }
 
-        @PutMapping()
+        @PutMapping("Pod")
         fun update(@RequestBody pod: V1Pod): Map<String, Any> {
             val result = HashMap<String, Any>()
             try {
@@ -208,7 +180,7 @@ class PodController(
             return result;
         }
 
-        @PostMapping("/{ns}")
+        @PostMapping("/namespace/{ns}/Pod")
         fun createPod(@PathVariable ns: String, @RequestBody body: V1Pod): Map<String, Any> {
             val result = HashMap<String, Any>()
             try {

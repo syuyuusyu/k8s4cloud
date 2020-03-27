@@ -11,20 +11,14 @@
  */
 
 
-package org.openapitools.client.model;
+package io.kubernetes.client.models;
 
-import java.util.Objects;
-import java.util.Arrays;
-import com.google.gson.TypeAdapter;
-import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
-import io.swagger.annotations.ApiModel;
+import io.kubernetes.client.custom.Quantity;
 import io.swagger.annotations.ApiModelProperty;
-import java.io.IOException;
-import org.openapitools.client.model.NodeMetricsListMetadata;
-import org.openapitools.client.model.NodeMetricsListUsage;
+
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * NodeMetricsListItems
@@ -45,7 +39,7 @@ public class NodeMetricsListItems {
 
   public static final String SERIALIZED_NAME_USAGE = "usage";
   @SerializedName(SERIALIZED_NAME_USAGE)
-  private NodeMetricsListUsage usage;
+  private Map<String, Quantity> usage = null;
 
 
   public NodeMetricsListItems metadata(NodeMetricsListMetadata metadata) {
@@ -117,7 +111,7 @@ public class NodeMetricsListItems {
   }
 
 
-  public NodeMetricsListItems usage(NodeMetricsListUsage usage) {
+  public NodeMetricsListItems usage(Map<String, Quantity> usage) {
     
     this.usage = usage;
     return this;
@@ -130,18 +124,18 @@ public class NodeMetricsListItems {
   @javax.annotation.Nullable
   @ApiModelProperty(value = "")
 
-  public NodeMetricsListUsage getUsage() {
+  public Map<String, Quantity> getUsage() {
     return usage;
   }
 
 
-  public void setUsage(NodeMetricsListUsage usage) {
+  public void setUsage(Map<String, Quantity> usage) {
     this.usage = usage;
   }
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -177,7 +171,7 @@ public class NodeMetricsListItems {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }
