@@ -56,7 +56,7 @@ fun beans() = org.springframework.context.support.beans {
         val kubeConfigPath = ref<KubeProperties>().kubeConfigPath
         val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath))).build()
         Configuration.setDefaultApiClient(client)
-        client.setDebugging(true)
+        //client.setDebugging(true)
         client
     }
 
@@ -152,7 +152,7 @@ fun newCoreV1Api(): CoreV1Api {
     val path = (SpringUtil.getBean("self-bzh.cloud.k8s.config.KubeProperties") as KubeProperties).kubeConfigPath
     val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(path))).build()
     //Configuration.setDefaultApiClient(client)
-    client.setDebugging(true)
+    //client.setDebugging(true)
     println("new CoreV1Api")
     return CoreV1Api(client)
 }

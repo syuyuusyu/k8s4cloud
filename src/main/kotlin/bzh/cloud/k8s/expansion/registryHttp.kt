@@ -23,6 +23,7 @@ import java.util.*
 import java.util.concurrent.LinkedBlockingDeque
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import java.nio.file.NoSuchFileException
 
 
 class ProgressResponseBody(
@@ -41,6 +42,11 @@ class ProgressResponseBody(
         }
         return bufferedSource!!;
     }
+
+//    override fun source(): BufferedSource {
+//        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+//        val input = responseBody.byteStream()
+//    }
 
     private fun source(source: Source): Source? {
         return object : ForwardingSource(source) {
@@ -61,13 +67,14 @@ class ProgressResponseBody(
                         this.digest=this@ProgressResponseBody.progressListener.digest
                         this.message = "下载${this.digest}超时"
                     })
+                    progressListener.sessionProgress?.isok = false
                     progressListener.sessionProgress?.sink?.complete()
                     throw e
                 }
 
                 totalBytesRead += if (bytesRead != -1L) bytesRead else 0
                 if(duration%10L == 0L || bytesRead == -1L ){
-                    progressListener.update(totalBytesRead, responseBody.contentLength(), bytesRead == -1L,"down")
+                    progressListener.update(totalBytesRead, bytesRead,responseBody.contentLength(), bytesRead == -1L,"down")
                 }
                 return bytesRead
             }
@@ -101,7 +108,7 @@ class ProgressRequestBody(
             while (source.read(sink.buffer(), 4096).also { read = it } != -1L) {
                 total += read
                 sink.flush()
-                progressListener.update(total,filesize,total >= filesize,"up")
+                progressListener.update(total,filesize,0,total >= filesize,"up")
             }
         } catch (e:SocketTimeoutException){
             progressListener.sessionProgress?.sink?.next(ProcessDetail().apply {
@@ -109,6 +116,7 @@ class ProgressRequestBody(
                 this.digest=this@ProgressRequestBody.progressListener.digest
                 this.message = "上传${this.digest}超时"
             })
+            progressListener.sessionProgress?.isok = false
             progressListener.sessionProgress?.sink?.complete()
             throw e
         } finally {
@@ -124,8 +132,8 @@ class ProgressListener(val digest:String) {
     }
     var sessionProgress:SessionProgress? = null
     //var sink : FluxSink<ProcessDetail>? = null
-    fun update(bytesRead: Long, contentLength: Long, done: Boolean,action:String){
-        log.info("size {},action {},percent:{},sink?{}",bytesRead,action,100*bytesRead/contentLength,sessionProgress?.sink==null)
+    fun update(bytesRead: Long, stepLength:Long,contentLength: Long, done: Boolean,action:String){
+        log.info("size {},action {},percent:{},sink?{},stepLength:{}",bytesRead,action,100*bytesRead/contentLength,sessionProgress?.sink==null,stepLength)
         if(done){
             log.info("complete pull layer $digest {}",sessionProgress==null)
             sessionProgress?.afterPullComplete()
@@ -150,6 +158,7 @@ class SessionProgress(val session: String, val operation:String){
     }
     private val map = Collections.synchronizedMap(HashMap<String,ProgressListener>())
     private val status = LinkedBlockingDeque<Boolean>()
+    var isok = true
     fun initSink(sink : FluxSink<ProcessDetail>){
 //        map.forEach { k, v ->
 //            v.sink=sink
@@ -198,6 +207,7 @@ class ManifestJson(){
     val repoTags = ArrayList<String>()
     @JsonProperty("Layers")
     val layers = ArrayList<String>()
+    @Throws(NoSuchFileException::class)
     fun createFileMap(dir:String):Map<String,String>{
         var dir = dir
         val map = HashMap<String,String>()
@@ -216,6 +226,11 @@ class ManifestJson(){
         var dir = dir
         if(!dir.endsWith("/")) {
             dir = dir+"/"
+        }
+        val fileDir = File(dir)
+        val f = fileDir.listFiles().find { it.name.endsWith(".json") && it.name != "manifest.json" }
+        if(f!=null){
+            return f
         }
         val layers = layerlist.reduceIndexed { i,acc, s -> if(i==1) """"$acc","$s"""" else acc+",\""+s+"\"" }
         val json = """

@@ -92,7 +92,7 @@ public class TAR {
         try (FileOutputStream outputStream = new FileOutputStream(file)) {
 
             int read;
-            byte[] bytes = new byte[1024];
+            byte[] bytes = new byte[1024*4];
 
             while ((read = inputStream.read(bytes)) != -1) {
                 outputStream.write(bytes, 0, read);

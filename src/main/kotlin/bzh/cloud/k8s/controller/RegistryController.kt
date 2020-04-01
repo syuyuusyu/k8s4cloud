@@ -2,6 +2,7 @@ package bzh.cloud.k8s.controller
 
 import bzh.cloud.k8s.expansion.*
 import bzh.cloud.k8s.service.RegistryService
+import io.kubernetes.client.openapi.ApiException
 import org.apache.commons.lang.RandomStringUtils
 import org.apache.commons.lang.StringUtils
 import org.openapitools.client.api.DefaultApi
@@ -25,6 +26,7 @@ import org.springframework.web.reactive.function.server.*
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.io.File
+import java.nio.file.NoSuchFileException
 
 
 @RestController
@@ -82,9 +84,15 @@ class RegistryController(
         return Pair(queryUrl,queryName)
     }
     @GetMapping("/tagList/{name}")
-    fun tagList(@PathVariable name: String,@RequestParam(required=false) url:String?,@RequestParam(required=false) username:String?):Tags{
+    fun tagList(@PathVariable name: String,@RequestParam(required=false) url:String?,@RequestParam(required=false) username:String?):Mono<Tags>{
         val (queryUrl,queryName) = doname(name,url,username)
-        return  localRegistryApi.nameTagsListGet(name,null,null)
+        try{
+            val a =  localRegistryApi.nameTagsListGet(name,null,null)
+            return Mono.just(a)
+        }catch (e:Exception){
+            e.printStackTrace()
+            return  Mono.empty()
+        }
     }
 
 
@@ -126,6 +134,8 @@ class RegistryController(
         return RouterFunctions.route(RequestPredicates.POST("/registry/upload").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)),
                 HandlerFunction<ServerResponse> { request ->
                     request.body(BodyExtractors.toMultipartData()).flatMap { parts ->
+                        fun err(msg:String):Mono<ServerResponse> = ServerResponse.status(HttpStatus.OK)
+                                .body(BodyInserters.fromObject(mapOf("success" to false,"msg" to msg)))
                         val session = RandomStringUtils.randomAlphanumeric(8)
                         val map: Map<String, Part> = parts.toSingleValueMap()
                         val filePart: FilePart = map["file"]!! as FilePart
@@ -134,7 +144,7 @@ class RegistryController(
                             registryService.decompressUploadFile(session)
                         }catch (e:Exception){
                             e.printStackTrace()
-                            return@flatMap ServerResponse.status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromObject(mapOf("success" to false,"msg" to "解压上传文件出错!${e.toString()}")))
+                            return@flatMap err("解压上传文件出错!${e}")
                         }
 
                         val repositoriesExists = registryService.repositoriesExist(session)
@@ -142,15 +152,22 @@ class RegistryController(
                         val top = request.queryParam("tag")
                         if(!repositoriesExists && (!nop.isPresent || !top.isPresent)){
                             registryService.clearFile(session)
-                            ServerResponse.status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromObject(mapOf("success" to false,"msg" to "上传文件中没有名称和版本信息，必须指定")))
+                            err("上传文件中没有名称和版本信息，必须指定")
                         }else{
+                            try{
+                                registryService.upload(session,nop.orElse(""),top.orElse(""))
+                            }catch (e:NoSuchFileException){
+                                e.printStackTrace()
+                                return@flatMap err("上传文件出错,文件内容缺失${e}")
+                            }catch (e:Exception){
+                                e.printStackTrace()
+                                return@flatMap err("上传文件出错,${e}")
+                            }
                             ServerResponse.accepted().body(BodyInserters.fromObject(mapOf(
                                     "success" to true,
                                     "session" to session,
                                     "msg" to "文件已上传到服务器，正在上传到镜像仓库"
-                            ))).doOnSuccess {
-                                registryService.upload(session,nop.orElse(""),top.orElse(""))
-                            }
+                            )))
                         }
                     }
                 })

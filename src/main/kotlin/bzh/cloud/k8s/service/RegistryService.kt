@@ -32,6 +32,7 @@ import java.util.*
 import java.util.concurrent.Executor
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import java.nio.file.NoSuchFileException
 
 @Service
 class RegistryService(
@@ -73,6 +74,7 @@ class RegistryService(
     }
 
     fun tagList(url: String, name: String): Mono<Tags> {
+
         val apiClient = createClient(url)
         val result: Tags
         var token = ""
@@ -103,8 +105,10 @@ class RegistryService(
         val process = SessionProgress(session, "mount")
         downloadListenerMap.put(session, process)
         fun uploadFile() {
-            compressDownFile(session)
-            upload(session, name, tag)
+            if(process.isok){
+                compressDownFile(session)
+                upload(session, name, tag)
+            }
         }
         process.execComplete = ::uploadFile
         val uploud = startDownload(url, name, tag,"mount",session)
@@ -112,6 +116,9 @@ class RegistryService(
     }
 
     fun startDownload(url: String, name: String, tag: String, operation: String,session: String = RandomStringUtils.randomAlphanumeric(8)): Mono<DownloadInfo> {
+        if(!downloadListenerMap.containsKey(session)){
+            downloadListenerMap.put(session,SessionProgress(session,operation))
+        }
         val apiClient = createClient(url)
         val result: V2ManifestResult
         var token = ""
@@ -174,6 +181,7 @@ class RegistryService(
                             this.digest = manifest.config!!.digest!!
                             this.message = "下载${manifest.config!!.digest!!}超时"
                         })
+                        process?.isok = false
                         process?.sink?.complete()
                     }
                     throw e
@@ -210,8 +218,14 @@ class RegistryService(
         val json = readFromInputStream(manifestFile.inputStream())!!
         log.info(json)
         val manifestJson = JsonUtil.jsonToBean(json, object : TypeReference<List<ManifestJson>>() {}).get(0)
+        val fileMap:Map<String,String>
+        try {
+            fileMap = manifestJson.createFileMap(dir)
+        }catch (e:NoSuchFileException){
+            throw e
+            return
+        }
 
-        val fileMap = manifestJson.createFileMap(dir)
         log.info("layer size:{}", fileMap.size)
         val layerManifestlist = ArrayList<Manifest>()
         val uploadList = ArrayList<Pair<String, String>>()
@@ -244,6 +258,7 @@ class RegistryService(
                         this.complete = true
                         this.message = "文件上传完成"
                     })
+                    process?.isok = false
                     process?.sink?.complete()
                 }
                 downloadListenerMap.remove(session)
@@ -257,6 +272,7 @@ class RegistryService(
                     this.message = "上传文件清单出错"
                 })
                 process?.sink?.complete()
+                process?.isok = false
             }
 
         }
@@ -280,6 +296,9 @@ class RegistryService(
         needUplayers.stream().parallel().forEach { (digest, fileName) ->
             val layerFile = File(fileName)
             val progressListener = addListener("upload", session, digest, ::completeUpload)
+            if(!progressListener.sessionProgress?.isok!!){
+                return@forEach
+            }
             val (uploadUrl, _) = localRegistryApi.startUpload(name)
             uploadUrl?.let {
                 log.info("upload file:{}", fileName)
@@ -293,6 +312,7 @@ class RegistryService(
                             this.digest = digest
                             this.message = "下载${digest}超时"
                         })
+                        process?.isok = false
                         log.error("SocketTimeoutException process:{},sink:{}",process==null,process?.sink==null)
                         process?.sink?.complete()
                     }
@@ -372,6 +392,9 @@ class RegistryService(
     private fun createLayer(client: DefaultApi, name: String, digest: String, session: String, authorization: String?,operation: String) {
 
         val progressListener = addListener(operation, session, digest, null)
+        if(!progressListener.sessionProgress?.isok!!){
+            return
+        }
         val nameforLocal = if (name.contains("/")) name.split("/")[1] else name.split("/")[0]
         val exists = localRegistryApi.existingLayers(nameforLocal, digest)
         val response: Response
@@ -390,6 +413,7 @@ class RegistryService(
                     this.digest = digest
                     this.message = "下载${digest}超时"
                 })
+                process?.isok = false
                 log.error("SocketTimeoutException process:{},sink:{}",process==null,process?.sink==null)
                 process?.sink?.complete()
             }

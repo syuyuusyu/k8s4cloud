@@ -2,17 +2,14 @@ package bzh.cloud.k8s.controller
 
 
 import bzh.cloud.k8s.config.CmContext
-import bzh.cloud.k8s.config.KubeProperties
+
 import bzh.cloud.k8s.config.UpdateClient
 import bzh.cloud.k8s.config.watchClient
 import bzh.cloud.k8s.expansion.metricsNode
 import bzh.cloud.k8s.service.ConfigMapService
-import bzh.cloud.k8s.service.RegistryService
-import bzh.cloud.k8s.utils.SpringUtil
 import io.kubernetes.client.custom.V1Patch
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
-
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -23,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.custom.Quantity
 import io.kubernetes.client.openapi.ApiException
-import io.kubernetes.client.openapi.Configuration
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api
 import io.kubernetes.client.openapi.models.*
@@ -32,8 +28,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpResponse
 import reactor.core.publisher.Flux
+import java.time.Duration
 import java.util.concurrent.Executor
-import java.util.concurrent.TimeUnit
 
 class NsWithQuota{
     var name = ""
@@ -82,8 +78,6 @@ class KubeController(
         }
     }
 
-//    @GetMapping("/watch/namespace/test/Resourcequota",produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-//    fun test(): String = "sdd"
 
 
     private fun createNsifNotExist(ns: String) {
@@ -105,11 +99,19 @@ class KubeController(
 
         return Flux.create<V1ResourceQuota> { sink->
             threadPool.execute {
-                watch.forEach {
-                    sink.next(it.`object`)
+                try {
+                    watch.forEach {
+                        sink.next(it.`object`)
+                    }
+                }catch (e:RuntimeException){
+                    e.printStackTrace()
                 }
             }
-        }.doOnCancel{
+            Flux.interval(Duration.ofSeconds(40)).map {
+                val p = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
+                sink.next(p)
+            }.subscribe()
+        }.doFinally{
             log.info("done")
             watch.close()
         }
@@ -117,6 +119,9 @@ class KubeController(
 
     @GetMapping("/namespace")
     fun nameSpaceList(): List<String> = NameSpace().listname()
+
+    @GetMapping("/allnamespace")
+    fun allnamespace(): List<String> = NameSpace().listname() + NameSpace().filterList
 
     @GetMapping("/checknsname/{ns}")
     fun checknsname(@PathVariable ns: String): Map<String, Any> = NameSpace().nameExistsStatus(ns)
@@ -217,12 +222,22 @@ class KubeController(
                     quotaPods = quota.spec?.hard?.get("pods")?.toSuffixedString()!!.toInt()
                     limitCpu = limitRange.spec?.limits?.get(0)?.max?.get("cpu")?.toSuffixedString()!!
                     limitMemory = limitRange.spec?.limits?.get(0)?.max?.get("memory")?.toSuffixedString()!!
+
+                    defaultCpu = limitRange.spec?.limits?.get(0)?.default?.get("cpu")?.toSuffixedString()!!
+                    defaultMemory = limitRange.spec?.limits?.get(0)?.default?.get("memory")?.toSuffixedString()!!
+
+                    defaultRequestCpu = limitRange.spec?.limits?.get(0)?.defaultRequest?.get("cpu")?.toSuffixedString()!!
+                    defaultRequestMemory = limitRange.spec?.limits?.get(0)?.defaultRequest?.get("memory")?.toSuffixedString()!!
+
+                    minCpu = limitRange.spec?.limits?.get(0)?.min?.get("cpu")?.toSuffixedString()!!
+                    minMemory = limitRange.spec?.limits?.get(0)?.min?.get("memory")?.toSuffixedString()!!
                 } catch (e: java.lang.Exception) {
                     log.info("{},{}", quota, limitRange)
                 }
             }
         }
     }
+
 
     @GetMapping("/node")
     fun nodes(): List<V1Node> {
@@ -308,6 +323,8 @@ class KubeController(
 
     @GetMapping("/ResourcequotaAllns")
     fun resourcequotaAllns(): List<Any> = Resourcequota().listAll()
+
+
 
 
 
@@ -566,8 +583,8 @@ class KubeController(
 
         fun buildRange(ns: String, limit: Map<String, Quantity>,
                        min: Map<String, Quantity>? = mapOf("cpu" to Quantity("100m"), "memory" to Quantity("100Mi")),
-                       default: Map<String, Quantity>? = mapOf("cpu" to Quantity("700m"), "memory" to Quantity("300Mi")),
-                       defaultRequest: Map<String, Quantity>? = mapOf("cpu" to Quantity("500m"), "memory" to Quantity("200Mi"))
+                       default: Map<String, Quantity>? = mapOf("cpu" to Quantity("500m"), "memory" to Quantity("300Mi")),
+                       defaultRequest: Map<String, Quantity>? = mapOf("cpu" to Quantity("400m"), "memory" to Quantity("200Mi"))
         ): V1LimitRange {
 
             return V1LimitRangeBuilder()
@@ -604,24 +621,23 @@ class KubeController(
         }
 
         fun read(ns: String, name: String): V1Service {
-            val a = kubeApi.readNamespacedService(name, ns, "true", null, null)
+            val a = kubeApi.readNamespacedService(name, ns, "false", null, null)
             a.metadata?.creationTimestamp = null
-            a.status = null
             return a
         }
 
         fun delete(ns: String, name: String) {
-            kubeApi.deleteNamespacedServiceWithHttpInfo(name, ns, "true", null, null, null, null, null)
+            kubeApi.deleteNamespacedServiceWithHttpInfo(name, ns, "false", null, null, null, null, null)
         }
 
         fun create(ns: String, service: V1Service) {
-            kubeApi.createNamespacedService(ns, service, "true", null, null)
+            kubeApi.createNamespacedService(ns, service, "false", null, null)
         }
     }
 
     inner class Ingress {
         fun list(ns: String): List<Any> {
-            return extensionApi.listNamespacedIngress(ns, "true",
+            return extensionApi.listNamespacedIngress(ns, "false",
                     null, null, null, null, null, null, 0, false)
                     .items
                     .map {
@@ -677,9 +693,8 @@ class KubeController(
         }
 
         fun read(name: String): V1PersistentVolume {
-            var a = kubeApi.readPersistentVolume(name, "ture", null, null)
+            val a = kubeApi.readPersistentVolume(name, "ture", null, null)
             a.metadata?.creationTimestamp = null
-            a.status = null
             return a
         }
 
@@ -716,9 +731,11 @@ class KubeController(
         }
 
         fun read(ns: String, name: String): V1PersistentVolumeClaim {
-            var a = kubeApi.readNamespacedPersistentVolumeClaim(name, ns, "true", null, null)
+            val a = kubeApi.readNamespacedPersistentVolumeClaim(name, ns, "true", null, null)
             a.metadata?.creationTimestamp = null
-            a.status = null
+            a.status?.conditions?.forEach {
+                it.lastTransitionTime = null
+            }
             return a
         }
 
@@ -756,10 +773,12 @@ class KubeController(
         }
 
         fun read(ns: String, name: String): ExtensionsV1beta1Deployment {
-            var a = extensionApi.readNamespacedDeployment(name, ns, "true", null, null)
+            val a = extensionApi.readNamespacedDeployment(name, ns, "true", null, null)
             a.metadata?.creationTimestamp = null
-            a.status = null
-
+            a.status?.conditions?.forEach {
+                it.lastTransitionTime = null
+                it.lastUpdateTime = null
+            }
             return a
         }
 

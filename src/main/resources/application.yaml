@@ -12,7 +12,7 @@ logging:
     ind.syu: debug
     io.kubernetes: info
     org:
-      springframework: debug
+      springframework: info
 
 server:
   port: 8002
