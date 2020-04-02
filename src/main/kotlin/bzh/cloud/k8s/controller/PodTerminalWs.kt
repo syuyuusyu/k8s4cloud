@@ -44,8 +44,7 @@ class PodTerminalWs :WebSocketHandler {
             val podName = parameterMap["name"]
             val containerName = parameterMap["container"];
             val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath))).build()
-            Configuration.setDefaultApiClient(client)
-            val exec = Exec()
+            val exec = Exec(client)
             val proc = exec.exec(namespace, podName, arrayOf("sh"), containerName,true, true);
             val input=proc.inputStream
             val output = proc.outputStream

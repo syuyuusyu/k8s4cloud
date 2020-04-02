@@ -1,9 +1,11 @@
 package bzh.cloud.k8s.controller
 
 
+import bzh.cloud.k8s.config.KubeProperties
 import bzh.cloud.k8s.config.watchClient
 import bzh.cloud.k8s.expansion.watchLog
 import bzh.cloud.k8s.service.PodService
+import bzh.cloud.k8s.utils.SpringUtil
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.PodLogs
 import io.kubernetes.client.custom.V1Patch
@@ -31,6 +33,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.time.Duration
 import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 
 
 @RestController
@@ -131,17 +134,35 @@ class PodController(
 
     @GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
     fun log2(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
-        threadPool.execute {
-            kubeApi.watchLog(pname, ns, if (cname == "undefined") null else cname)
+        val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
+                Int.MAX_VALUE, null, false, Int.MAX_VALUE, 100, false)
+
+        val (_,api) = watchClient()
+
+        val call1 = api.readNamespacedPodLogCall(pname,ns,if (cname == "undefined") null else cname,
+                true,null,null,false,2,10,false,null)
+
+
+        val response = call1.execute()
+        val input = response.body()?.byteStream()!!
+        var gono = true
+
+        return Flux.create<String> { sink->
+            sink.next(firstlog)
+            while (gono){
+                    val count= input.available()
+                    log.info("{}",count)
+                    val byteArray = ByteArray(count)
+                    input.read(byteArray)
+                    sink.next(String(byteArray))
+            }
+        }.doFinally {
+            log.info("/watch/log complete")
+            gono = false
+            input.close()
+            response.close()
         }
 
-
-        return Flux.interval(Duration.ofSeconds(2))
-                .map {
-                    "aaa"
-                }.doFinally {
-                    log.debug("log stream close!!")
-                }
 
     }
 

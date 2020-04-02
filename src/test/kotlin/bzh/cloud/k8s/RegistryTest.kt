@@ -28,6 +28,7 @@ import java.io.File
 import java.util.LinkedHashMap
 import com.fasterxml.jackson.core.type.TypeReference
 import com.google.gson.reflect.TypeToken
+import io.kubernetes.client.PodLogs
 import io.kubernetes.client.openapi.Configuration
 import io.kubernetes.client.openapi.models.*
 import io.kubernetes.client.util.ClientBuilder
@@ -347,8 +348,33 @@ class RegistryTest {
             log.info(it.`object`.metadata?.name)
         }
 
+    }
 
+    @Test
+    fun log(){
+        val path = (SpringUtil.getBean("self-bzh.cloud.k8s.config.KubeProperties") as KubeProperties).kubeConfigPath
+        val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(path))).build()
+        val httpClient = client.getHttpClient().newBuilder().readTimeout(0, TimeUnit.SECONDS).build();
+        client.setHttpClient(httpClient);
 
+        val api = CoreV1Api(client)
+
+        val logs =  PodLogs();
+
+        val call = api.readNamespacedPodLogCall("k8s4cloud-deploy-6777b78997-fnzlt","cloud-ns","k8s4cloud",true,
+                null,null,false,2,10,false,null)
+        val response = call.execute()
+        println(response)
+        val input = response.body()?.byteStream()
+        input?.let {
+            while (true){
+                val count= it.available()
+                println(count)
+                val byteArray = ByteArray(count)
+                input.read(byteArray)
+                println(String(byteArray))
+            }
+        }
     }
 
 
