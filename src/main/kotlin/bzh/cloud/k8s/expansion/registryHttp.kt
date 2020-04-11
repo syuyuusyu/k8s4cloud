@@ -24,6 +24,7 @@ import java.util.concurrent.LinkedBlockingDeque
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import java.nio.file.NoSuchFileException
+import java.util.concurrent.TimeUnit
 
 
 class ProgressResponseBody(
@@ -108,7 +109,7 @@ class ProgressRequestBody(
             while (source.read(sink.buffer(), 4096).also { read = it } != -1L) {
                 total += read
                 sink.flush()
-                progressListener.update(total,filesize,0,total >= filesize,"up")
+                progressListener.update(total,4096,filesize,total >= filesize,"up")
             }
         } catch (e:SocketTimeoutException){
             progressListener.sessionProgress?.sink?.next(ProcessDetail().apply {
@@ -127,13 +128,18 @@ class ProgressRequestBody(
 }
 
 class ProgressListener(val digest:String) {
+    var  count=0
     companion object{
         private val log: Logger = LoggerFactory.getLogger(ProgressListener::class.java)
     }
     var sessionProgress:SessionProgress? = null
     //var sink : FluxSink<ProcessDetail>? = null
     fun update(bytesRead: Long, stepLength:Long,contentLength: Long, done: Boolean,action:String){
-        log.info("size {},action {},percent:{},sink?{},stepLength:{}",bytesRead,action,100*bytesRead/contentLength,sessionProgress?.sink==null,stepLength)
+        count++
+        if(count%20==0){
+            val l = if(contentLength==0L) 1 else contentLength
+            log.info("size {},action {},percent:{},sink?{},stepLength:{}",bytesRead,action,100*bytesRead/l,sessionProgress?.sink==null,stepLength)
+        }
         if(done){
             log.info("complete pull layer $digest {}",sessionProgress==null)
             sessionProgress?.afterPullComplete()
@@ -158,6 +164,7 @@ class SessionProgress(val session: String, val operation:String){
     }
     private val map = Collections.synchronizedMap(HashMap<String,ProgressListener>())
     private val status = LinkedBlockingDeque<Boolean>()
+    //private val status = Collections.synchronizedList(ArrayList<Boolean>())
     var isok = true
     fun initSink(sink : FluxSink<ProcessDetail>){
 //        map.forEach { k, v ->
@@ -169,22 +176,27 @@ class SessionProgress(val session: String, val operation:String){
         get() = map.size
     var sink : FluxSink<ProcessDetail>? = null
 
-    fun addListener(digest:String,listener:ProgressListener) {
-        listener.sessionProgress = this
-        status.put(false)
-        log.info("status.put {}",status.size)
-        map.put(digest,listener)
+    fun  addListener(digest:String,listener:ProgressListener) {
+        synchronized(this){
+            listener.sessionProgress = this
+            status.put(false)
+            log.info("status.put {}",status.size)
+            map.put(digest,listener)
+        }
+
     }
     fun afterPullComplete(){
-        status.take()
-        log.info("status.take {}",status.size)
-        if(status.size == 0){
-            log.info("all layper $operation complete session:{}",session)
-            execComplete?.let { it() }
-            sink?.let {
-                if(operation=="download"){
-                    it.next(ProcessDetail().apply { this.session = this@SessionProgress.session;complete=true;this.message="下载完成";this.operation=operation })
-                    it.complete()
+        synchronized(this) {
+            status.take()
+            log.info("status.take {}", status.size)
+            if (status.size == 0) {
+                log.info("all layper $operation complete session:{}", session)
+                execComplete?.let { it() }
+                sink?.let {
+                    if (operation == "download") {
+                        it.next(ProcessDetail().apply { this.session = this@SessionProgress.session;complete = true;this.message = "下载完成";this.operation = operation })
+                        it.complete()
+                    }
                 }
             }
         }
@@ -287,6 +299,7 @@ class ProcessDetail(){
 fun DefaultApi.downLoadRrocessClient(progressListener:ProgressListener?=null):OkHttpClient{
     val kubeProperties = SpringUtil.getBean("self-bzh.cloud.k8s.config.KubeProperties") as KubeProperties
     val clientBuild = OkHttpClient.Builder()
+    clientBuild.readTimeout(44, TimeUnit.SECONDS)
     progressListener?.let {
         clientBuild.addNetworkInterceptor { chain: Interceptor.Chain ->
             val originalResponse = chain.proceed(chain.request())

@@ -9,6 +9,7 @@ import com.google.gson.reflect.TypeToken
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import org.apache.commons.lang.RandomStringUtils
+import org.openapitools.client.ApiResponse
 import org.openapitools.client.api.DefaultApi
 import org.openapitools.client.model.Manifest
 import org.openapitools.client.model.Tags
@@ -233,13 +234,15 @@ class RegistryService(
 
         fun completeUpload() {
             log.info("uploadLayer complete")
+            val manifest = V2ManifestResult()
+            var result:ApiResponse<Void>? = null
             try {
                 val lastFile = manifestJson.lastLayer(dir, layerManifestlist.map { it.digest!! })
                 val lastFiledigets = "sha256:${sha256(lastFile.toPath())}"
                 val (uploadUrl, _) = localRegistryApi.startUpload(name)
                 localRegistryApi.uploadLayer("$uploadUrl&digest=$lastFiledigets", lastFile, null)
 
-                val manifest = V2ManifestResult()
+
                 manifest.config = Manifest().apply {
                     this.digest = lastFiledigets
                     this.size = lastFile.length()
@@ -248,8 +251,8 @@ class RegistryService(
                 manifest.schemaVersion = 2
                 manifest.mediaType = "application/vnd.docker.distribution.manifest.v2+json"
                 manifest.layers = layerManifestlist
-
-                val result = localRegistryApi.putManifestsWithHttpInfo(name, tag, manifest)
+                log.info("putManifestsWithHttpInfo,{}",JsonUtil.beanToJson(manifest))
+                result = localRegistryApi.putManifestsWithHttpInfo(name, tag, manifest)
                 log.info("putManifests statuscode:{}", result.statusCode)
                 if (result.statusCode == 201) {
                     val process = downloadListenerMap.get(session)
@@ -265,6 +268,8 @@ class RegistryService(
                 clearFile(session)
             }catch (e:Exception){
                 e.printStackTrace()
+                log.info("error manifest:{}",JsonUtil.beanToJson(manifest))
+                log.info("statusCode:{},data:{}",result?.statusCode,result?.data)
                 val process = downloadListenerMap.get(session)
                 process?.sink?.next(ProcessDetail().apply {
                     this.session = session

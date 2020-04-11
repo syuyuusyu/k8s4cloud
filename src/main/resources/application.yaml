@@ -23,7 +23,8 @@ self:
   #registryUrl: http://127.0.0.1:5000
 
   #officalRegistryUrl: https://index.docker.io
-  officalRegistryUrl: https://dockerhub.azk8s.cn
+  officalRegistryUrl: https://hub-mirror.c.163.com
+  #officalRegistryUrl: https://dockerhub.azk8s.cn
   #officalRegistryUrl: https://registry.docker-cn.com
   authRegistryUrl: https://auth.docker.io
   httpProxy: 127.0.0.1:1087

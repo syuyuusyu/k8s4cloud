@@ -98,6 +98,8 @@ class KubeController(
                 object : TypeToken<Watch.Response<V1ResourceQuota>>() {}.type )
 
         return Flux.create<V1ResourceQuota> { sink->
+            val p = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
+            sink.next(p)
             threadPool.execute {
                 try {
                     watch.forEach {
@@ -108,7 +110,6 @@ class KubeController(
                 }
             }
             Flux.interval(Duration.ofSeconds(40)).map {
-                val p = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
                 sink.next(p)
             }.subscribe()
         }.doFinally{

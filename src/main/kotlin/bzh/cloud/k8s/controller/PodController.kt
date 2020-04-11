@@ -19,6 +19,7 @@ import io.kubernetes.client.openapi.models.V1PodBuilder
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
 import io.kubernetes.client.util.Watch
+import kotlinx.coroutines.*
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
@@ -75,7 +76,7 @@ class PodController(
 
 
     @GetMapping("/watch/namespace/{ns}/Pod", produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-    fun watchList(@PathVariable ns: String): Flux<V1Pod> {
+    fun watchList(@PathVariable ns: String): Flux<V1Pod>  {
         val (client, api) = watchClient()
 
         val watch = Watch.createWatch<V1Pod>(
@@ -83,36 +84,61 @@ class PodController(
                 api.listNamespacedPodCall(ns, null, null, null, null, null, 5, null, null, java.lang.Boolean.TRUE, null),
                 object : TypeToken<Watch.Response<V1Pod>>() {}.type)
         return Flux.create<V1Pod> { sink ->
+
+            val p = V1PodBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
+            sink.next(p)
+//            runBlocking {
+//                launch {
+//                    try {
+//                        watch.forEach {
+//                            //log.info("watch pod:{}",it.`object`)
+//                            sink.next(it.`object`)
+//                        }
+//                    } catch (e: RuntimeException) {
+//                        //e.printStackTrace()
+//                    }
+//
+//                }
+//                launch {
+//                    log.info("heart beat")
+//                    repeat(1000){
+//                        //delay(4*1000)
+//
+//                        sink.next(p)
+//                    }
+//                }
+//            }
             threadPool.execute {
+                sink.next(p)
                 try {
                     watch.forEach {
                         //log.info("watch pod:{}",it.`object`)
                         sink.next(it.`object`)
                     }
                 }catch (e:RuntimeException){
-                    e.printStackTrace()
+                    //e.printStackTrace()
                 }
 
             }
             Flux.interval(Duration.ofSeconds(40)).map {
-                val p = V1PodBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
                 sink.next(p)
             }.subscribe()
+
         }.doFinally {
             log.info("doFinally")
             watch.close()
         }.doOnComplete {
             log.info("doOnComplete")
-            watch.close()
+            //watch.close()
         }.doAfterTerminate {
             log.info("doAfterTerminate")
-            watch.close()
+            //watch.close()
         }.doOnError {
             log.info("doOnError")
-            watch.close()
+            //watch.close()
         }.doOnCancel {
             log.info("doOnCancel")
-            watch.close()
+            //watch.close()
         }
     }
 
@@ -133,7 +159,7 @@ class PodController(
     }
 
     @GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-    fun log2(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
+    fun log2(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String>  {
         val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
                 Int.MAX_VALUE, null, false, Int.MAX_VALUE, 100, false)
 
@@ -148,14 +174,38 @@ class PodController(
         var gono = true
 
         return Flux.create<String> { sink->
-            sink.next(firstlog)
-            while (gono){
-                    val count= input.available()
-                    log.info("{}",count)
-                    val byteArray = ByteArray(count)
-                    input.read(byteArray)
-                    sink.next(String(byteArray))
+            sink.next(if(StringUtils.isEmpty(firstlog)) "" else firstlog)
+//            launch {
+//                while (gono){
+//                    try {
+//                        delay(1000)
+//                        val count= input.available()
+//                        log.info("{}",count)
+//                        val byteArray = ByteArray(count)
+//                        input.read(byteArray)
+//                        sink.next(String(byteArray))
+//                    }catch (e:Exception){
+//
+//                    }
+//
+//                }
+//            }
+            threadPool.execute {
+                while (gono){
+                    try {
+                        TimeUnit.SECONDS.sleep(1);
+                        val count= input.available()
+                        log.info("{}",count)
+                        val byteArray = ByteArray(count)
+                        input.read(byteArray)
+                        sink.next(String(byteArray))
+                    }catch (e:Exception){
+
+                    }
+
+                }
             }
+
         }.doFinally {
             log.info("/watch/log complete")
             gono = false
