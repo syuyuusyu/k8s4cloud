@@ -329,7 +329,7 @@ class RegistryService(
                                 process.sink?.next(ProcessDetail().apply {
                                     this.error = true
                                     this.digest = digest
-                                    this.message = "下载${digest}超时"
+                                    this.message = "上传${digest}超时"
                                 })
                                 log.error("SocketTimeoutException process:{},sink:{}", process == null, process?.sink == null)
                                 process.sink?.complete()

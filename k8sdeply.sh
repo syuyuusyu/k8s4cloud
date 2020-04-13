@@ -1,4 +1,4 @@
-v="v1.76"
+v="v1.77"
 mvn package -Dmaven.test.skip=true &&
 docker build -t k8s4cloud:$v . &&
 docker tag k8s4cloud:$v 192.168.50.28:5000/k8s4cloud:$v &&
