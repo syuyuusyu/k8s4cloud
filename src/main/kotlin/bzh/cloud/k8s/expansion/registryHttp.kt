@@ -6,6 +6,7 @@ import bzh.cloud.k8s.utils.SpringUtil
 import bzh.cloud.k8s.utils.TAR
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.type.TypeReference
+import kotlinx.coroutines.*
 import okhttp3.*
 import okhttp3.internal.Util
 import okio.*
@@ -19,8 +20,6 @@ import sha256
 import java.io.*
 import java.net.Proxy
 import java.net.SocketTimeoutException
-import java.util.*
-import java.util.concurrent.LinkedBlockingDeque
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import java.nio.file.NoSuchFileException
@@ -63,16 +62,8 @@ class ProgressResponseBody(
                 try{
                      bytesRead = super.read(sink, byteCount)
                 }catch (e:SocketTimeoutException){
-                    progressListener.sessionProgress?.sink?.next(ProcessDetail().apply {
-                        this.error = true
-                        this.digest=this@ProgressResponseBody.progressListener.digest
-                        this.message = "下载${this.digest}超时"
-                    })
-                    progressListener.sessionProgress?.isok = false
-                    progressListener.sessionProgress?.sink?.complete()
                     throw e
                 }
-
                 totalBytesRead += if (bytesRead != -1L) bytesRead else 0
                 if(duration%10L == 0L || bytesRead == -1L ){
                     progressListener.update(totalBytesRead, bytesRead,responseBody.contentLength(), bytesRead == -1L,"down")
@@ -112,13 +103,6 @@ class ProgressRequestBody(
                 progressListener.update(total,4096,filesize,total >= filesize,"up")
             }
         } catch (e:SocketTimeoutException){
-            progressListener.sessionProgress?.sink?.next(ProcessDetail().apply {
-                this.error = true
-                this.digest=this@ProgressRequestBody.progressListener.digest
-                this.message = "上传${this.digest}超时"
-            })
-            progressListener.sessionProgress?.isok = false
-            progressListener.sessionProgress?.sink?.complete()
             throw e
         } finally {
             Util.closeQuietly(source)
@@ -139,69 +123,55 @@ class ProgressListener(val digest:String) {
         if(count%20==0){
             val l = if(contentLength==0L) 1 else contentLength
             log.info("size {},action {},percent:{},sink?{},stepLength:{}",bytesRead,action,100*bytesRead/l,sessionProgress?.sink==null,stepLength)
-        }
-        if(done){
-            log.info("complete pull layer $digest {}",sessionProgress==null)
-            sessionProgress?.afterPullComplete()
-        }
-        sessionProgress?.sink?.let {
-            val det = ProcessDetail().apply {
-                size=contentLength
-                this.digest=this@ProgressListener.digest
-                processSize=bytesRead;
-                this.operation=this@ProgressListener.sessionProgress?.operation!!
-                this.action = action
+            sessionProgress?.sink?.let {
+                val det = ProcessDetail().apply {
+                    size=contentLength
+                    this.digest=this@ProgressListener.digest
+                    processSize=bytesRead;
+                    this.operation=this@ProgressListener.sessionProgress?.operation!!.name
+                    this.action = action
+                }
+                it.next(det)
             }
-            //log.info("{}",det)
-            it.next(det)
         }
+
     }
 }
 
-class SessionProgress(val session: String, val operation:String){
+class SessionProgress private constructor(val session: String) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
+    enum class Operation{UPLOAD,DOWNLOAD,MOUNT}
+    lateinit var operation:Operation
     companion object{
         private val log: Logger = LoggerFactory.getLogger(ProgressListener::class.java)
-    }
-    private val map = Collections.synchronizedMap(HashMap<String,ProgressListener>())
-    private val status = LinkedBlockingDeque<Boolean>()
-    //private val status = Collections.synchronizedList(ArrayList<Boolean>())
-    var isok = true
-    fun initSink(sink : FluxSink<ProcessDetail>){
-//        map.forEach { k, v ->
-//            v.sink=sink
-//        }
-        this.sink = sink
-    }
-    val layerSize
-        get() = map.size
-    var sink : FluxSink<ProcessDetail>? = null
-
-    fun  addListener(digest:String,listener:ProgressListener) {
-        synchronized(this){
-            listener.sessionProgress = this
-            status.put(false)
-            log.info("status.put {}",status.size)
-            map.put(digest,listener)
-        }
-
-    }
-    fun afterPullComplete(){
-        synchronized(this) {
-            status.take()
-            log.info("status.take {}", status.size)
-            if (status.size == 0) {
-                log.info("all layper $operation complete session:{}", session)
-                execComplete?.let { it() }
-                sink?.let {
-                    if (operation == "download") {
-                        it.next(ProcessDetail().apply { this.session = this@SessionProgress.session;complete = true;this.message = "下载完成";this.operation = operation })
-                        it.complete()
-                    }
+        val atomicThread = newSingleThreadContext("atomicThread")
+        private val sessionMap = HashMap<String, SessionProgress>()
+        fun getSessionProgress(session:String) = runBlocking{
+            withContext(atomicThread){
+                sessionMap.get(session) ?: SessionProgress(session).also {
+                    log.info("create new process for session:{}",session)
+                    sessionMap.put(session,it)
                 }
             }
         }
     }
-    var execComplete:(()->Unit)? = null
+    private val map = HashMap<String,ProgressListener>()
+    
+    fun complete() = runBlocking { withContext(atomicThread){ sessionMap.remove(session) } }
+
+    fun initSink(sink : FluxSink<ProcessDetail>){
+        this.sink = sink
+    }
+
+    var sink : FluxSink<ProcessDetail>? = null
+
+    fun  newListener(digest:String) = runBlocking {
+        withContext(atomicThread){
+            val listener = ProgressListener (digest)
+            listener.sessionProgress = this@SessionProgress
+            map.put(digest,listener)
+            listener
+        }
+    }
 }
 
 class DownloadInfo(){
@@ -240,6 +210,7 @@ class ManifestJson(){
             dir = dir+"/"
         }
         val fileDir = File(dir)
+        println(dir+"   ------")
         val f = fileDir.listFiles().find { it.name.endsWith(".json") && it.name != "manifest.json" }
         if(f!=null){
             return f

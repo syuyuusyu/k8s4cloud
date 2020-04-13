@@ -6,6 +6,9 @@ import bzh.cloud.k8s.utils.JsonUtil
 import bzh.cloud.k8s.utils.TAR
 import com.fasterxml.jackson.core.type.TypeReference
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import org.apache.commons.lang.RandomStringUtils
@@ -27,6 +30,7 @@ import reactor.core.publisher.Mono
 import sha256
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.lang.RuntimeException
 import java.net.Proxy
 import java.net.SocketTimeoutException
 import java.util.*
@@ -40,7 +44,7 @@ class RegistryService(
         val localRegistryApi: DefaultApi,
         val proxy: Proxy,
         val kubeProperties: KubeProperties,
-        val threadPool:Executor
+        val threadPool: Executor
 ) {
 
     @Value("\${self.authRegistryUrl}")
@@ -51,7 +55,6 @@ class RegistryService(
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(RegistryService::class.java)
-        val downloadListenerMap = Collections.synchronizedMap(HashMap<String, SessionProgress>())
     }
 
     fun createClient(url: String): DefaultApi {
@@ -100,26 +103,11 @@ class RegistryService(
         return Mono.just(result)
     }
 
-    fun mountImage(url: String, name: String, tag: String): Mono<DownloadInfo> {
 
-        val session = RandomStringUtils.randomAlphanumeric(8)
-        val process = SessionProgress(session, "mount")
-        downloadListenerMap.put(session, process)
-        fun uploadFile() {
-            if(process.isok){
-                compressDownFile(session)
-                upload(session, name, tag)
-            }
-        }
-        process.execComplete = ::uploadFile
-        val uploud = startDownload(url, name, tag,"mount",session)
-        return uploud
-    }
-
-    fun startDownload(url: String, name: String, tag: String, operation: String,session: String = RandomStringUtils.randomAlphanumeric(8)): Mono<DownloadInfo> {
-        if(!downloadListenerMap.containsKey(session)){
-            downloadListenerMap.put(session,SessionProgress(session,operation))
-        }
+    fun startDownloadOrMount(url: String, name: String, tag: String, operation: SessionProgress.Operation = SessionProgress.Operation.DOWNLOAD,
+                             session: String = RandomStringUtils.randomAlphanumeric(8)): Mono<DownloadInfo> {
+        val process = SessionProgress.getSessionProgress(session)
+        process.operation = operation
         val apiClient = createClient(url)
         val result: V2ManifestResult
         var token = ""
@@ -169,30 +157,8 @@ class RegistryService(
             })
         }
 
-        return Mono.just(result).doOnSuccess { manifest ->
-            log.info("doOnSuccess")
-            threadPool.execute {
-                try {
-                    createPullFile(apiClient, name, tag, manifest.config!!.digest!!, session, token, manifest.layers!!.map { fest -> fest.digest!! })
-                } catch (e: SocketTimeoutException) {
-                    synchronized(downloadListenerMap) {
-                        val process = downloadListenerMap.get(session)
-                        process?.sink?.next(ProcessDetail().apply {
-                            this.error = true
-                            this.digest = manifest.config!!.digest!!
-                            this.message = "下载${manifest.config!!.digest!!}超时"
-                        })
-                        process?.isok = false
-                        process?.sink?.complete()
-                    }
-                    throw e
-                }
-                manifest.layers!!.stream().parallel().forEach {
-                    createLayer(apiClient, name, it.digest!!, session, token,operation)
-                }
-            }
-        }.map {
-            var a = it.layers!!
+        return Mono.just(result).map {
+            log.info("return startDownloadOrMount")
             DownloadInfo().apply {
                 sessionId = session
                 //TODO
@@ -201,10 +167,69 @@ class RegistryService(
                 msg = "start download"
                 it.layers!!.forEach { m -> digests.add(m.digest!!) }
             }
+        }.doOnSuccess {
+            process.launch {
+                log.info("doOnSuccess startDownloadOrMount")
+                val job = process.launch {
+                    try {
+                        createPullFile(apiClient, name, tag, result.config!!.digest!!, session, token, result.layers!!.map { fest -> fest.digest!! })
+                    } catch (e: SocketTimeoutException) {
+                        process.sink?.next(ProcessDetail().apply {
+                            this.error = true
+                            this.digest = result.config!!.digest!!
+                            this.message = "下载${result.config!!.digest!!}超时"
+                        })
+                        process.sink?.complete()
+                        throw e
+                    }
+                    result.layers!!.forEach { mani ->
+                        launch {
+
+                            try {
+                                createLayer(apiClient, name, mani.digest!!, session, token, process.newListener(mani.digest!!))
+                            } catch (e: SocketTimeoutException) {
+                                process.sink?.next(ProcessDetail().apply {
+                                    this.error = true
+                                    this.digest = mani.digest!!
+                                    this.message = "下载${mani.digest!!}超时"
+                                })
+                                process.sink?.complete()
+                                throw e
+                            }
+
+                        }
+                    }
+                }
+                job.join()
+                when (operation) {
+                    SessionProgress.Operation.DOWNLOAD -> {
+                        log.info("doload success send message")
+                        process.sink?.next(ProcessDetail().apply {
+                            this.complete = true
+                            this.message = "下载完成"
+                        })
+                        process.sink?.complete()
+                        process.complete()
+                    }
+                    SessionProgress.Operation.MOUNT -> {
+                        compressDownFile(session)
+                        upload(session, name, tag,process)
+                    }
+                    else -> {
+                    }
+                }
+
+            }
         }
     }
 
-    fun upload(session: String, name: String, tag: String) {
+    fun upload(session: String, name: String, tag: String,process:SessionProgress?) {
+        var process = process
+        if(process == null){
+            process = SessionProgress.getSessionProgress(session)
+            process.operation = SessionProgress.Operation.UPLOAD
+        }
+
         var name = name
         var tag = tag
         val file = File(sessionDir(session))
@@ -219,10 +244,10 @@ class RegistryService(
         val json = readFromInputStream(manifestFile.inputStream())!!
         log.info(json)
         val manifestJson = JsonUtil.jsonToBean(json, object : TypeReference<List<ManifestJson>>() {}).get(0)
-        val fileMap:Map<String,String>
+        val fileMap: Map<String, String>
         try {
             fileMap = manifestJson.createFileMap(dir)
-        }catch (e:NoSuchFileException){
+        } catch (e: NoSuchFileException) {
             throw e
             return
         }
@@ -235,7 +260,7 @@ class RegistryService(
         fun completeUpload() {
             log.info("uploadLayer complete")
             val manifest = V2ManifestResult()
-            var result:ApiResponse<Void>? = null
+            var result: ApiResponse<Void>? = null
             try {
                 val lastFile = manifestJson.lastLayer(dir, layerManifestlist.map { it.digest!! })
                 val lastFiledigets = "sha256:${sha256(lastFile.toPath())}"
@@ -251,37 +276,35 @@ class RegistryService(
                 manifest.schemaVersion = 2
                 manifest.mediaType = "application/vnd.docker.distribution.manifest.v2+json"
                 manifest.layers = layerManifestlist
-                log.info("putManifestsWithHttpInfo,{}",JsonUtil.beanToJson(manifest))
+                log.info("putManifestsWithHttpInfo,{}", JsonUtil.beanToJson(manifest))
                 result = localRegistryApi.putManifestsWithHttpInfo(name, tag, manifest)
                 log.info("putManifests statuscode:{}", result.statusCode)
                 if (result.statusCode == 201) {
-                    val process = downloadListenerMap.get(session)
-                    process?.sink?.next(ProcessDetail().apply {
+
+                    process.sink?.next(ProcessDetail().apply {
                         this.session = session
                         this.complete = true
                         this.message = "文件上传完成"
                     })
-                    process?.isok = false
-                    process?.sink?.complete()
+                    process.sink?.complete()
+                    log.info("upload success,send message ,{}",process.sink?.isCancelled)
+                    process.complete()
                 }
-                downloadListenerMap.remove(session)
                 clearFile(session)
-            }catch (e:Exception){
+            } catch (e: Exception) {
                 e.printStackTrace()
-                log.info("error manifest:{}",JsonUtil.beanToJson(manifest))
-                log.info("statusCode:{},data:{}",result?.statusCode,result?.data)
-                val process = downloadListenerMap.get(session)
-                process?.sink?.next(ProcessDetail().apply {
+                log.info("error manifest:{}", JsonUtil.beanToJson(manifest))
+                log.info("statusCode:{},data:{}", result?.statusCode, result?.data)
+
+                process.sink?.next(ProcessDetail().apply {
                     this.session = session
                     this.error = true
                     this.message = "上传文件清单出错"
                 })
-                process?.sink?.complete()
-                process?.isok = false
+                process.sink?.complete()
             }
 
         }
-
 
         fileMap.forEach { digest, fileName ->
             val layerFile = File(fileName)
@@ -297,44 +320,47 @@ class RegistryService(
 
         if (needUplayers.size == 0) {
             completeUpload()
+            return
         }
-        needUplayers.stream().parallel().forEach { (digest, fileName) ->
-            val layerFile = File(fileName)
-            val progressListener = addListener("upload", session, digest, ::completeUpload)
-            if(!progressListener.sessionProgress?.isok!!){
-                return@forEach
-            }
-            val (uploadUrl, _) = localRegistryApi.startUpload(name)
-            uploadUrl?.let {
-                log.info("upload file:{}", fileName)
-                try{
-                    localRegistryApi.uploadLayer("$uploadUrl&digest=sha256:$digest", layerFile, progressListener)
-                }catch (e:SocketTimeoutException){
-                    synchronized(downloadListenerMap) {
-                        val process = downloadListenerMap.get(session)
-                        process?.sink?.next(ProcessDetail().apply {
-                            this.error = true
-                            this.digest = digest
-                            this.message = "下载${digest}超时"
-                        })
-                        process?.isok = false
-                        log.error("SocketTimeoutException process:{},sink:{}",process==null,process?.sink==null)
-                        process?.sink?.complete()
-                    }
-                    throw e
-                }
+        process.launch {
+            val job = process.launch {
+                log.info("needUplayers.size:{}",needUplayers.size)
+                needUplayers.forEach { (digest, fileName) ->
+                    launch {
+                        val layerFile = File(fileName)
+                        val progressListener = process.newListener(digest)
+                        val (uploadUrl, _) = localRegistryApi.startUpload(name)
+                        uploadUrl?.let {
+                            log.info("upload file:{}", fileName)
+                            try {
+                                localRegistryApi.uploadLayer("$uploadUrl&digest=sha256:$digest", layerFile, progressListener)
+                            } catch (e: SocketTimeoutException) {
+                                process.sink?.next(ProcessDetail().apply {
+                                    this.error = true
+                                    this.digest = digest
+                                    this.message = "下载${digest}超时"
+                                })
+                                log.error("SocketTimeoutException process:{},sink:{}", process == null, process?.sink == null)
+                                process.sink?.complete()
+                                throw e
+                            }
 
+                        }
+                    }
+                }
             }
+            log.info("wait job done....")
+            job.join()
+            log.info("job donw")
+            completeUpload()
         }
     }
 
     fun processdetail(session: String): Flux<ProcessDetail> {
-        val process = downloadListenerMap.get(session)
-        log.info("layer size:{}", process?.layerSize)
-        process?.let {
-            return Flux.create<ProcessDetail>(process::initSink)
-        }
-        return Flux.empty()
+        val process = SessionProgress.getSessionProgress(session)
+
+        return Flux.create<ProcessDetail>(process::initSink)
+
     }
 
     fun downloadimg(session: String, response: ServerHttpResponse): Mono<Resource> {
@@ -363,20 +389,6 @@ class RegistryService(
         return repositories != null
     }
 
-    private fun addListener(operation: String, session: String, digest: String, execFun: (() -> Unit)?): ProgressListener {
-        val progressListener = ProgressListener(digest)
-        synchronized(downloadListenerMap) {
-            val process = downloadListenerMap.get(session) ?: SessionProgress(session, operation)
-            process.sink?.let {
-                progressListener.sessionProgress?.sink = it
-            }
-            process.addListener(digest, progressListener)
-            if (execFun != null) process.execComplete = execFun
-            downloadListenerMap.put(session, process)
-            log.info("session:{} digest:{},mapsize:{}", session, digest, process.layerSize)
-        }
-        return progressListener
-    }
 
     fun decompressUploadFile(session: String): File {
         val file = File(sessionDir(session))
@@ -394,36 +406,18 @@ class RegistryService(
         return Pair(name, tag)
     }
 
-    private fun createLayer(client: DefaultApi, name: String, digest: String, session: String, authorization: String?,operation: String) {
-
-        val progressListener = addListener(operation, session, digest, null)
-        if(!progressListener.sessionProgress?.isok!!){
-            return
-        }
+    private fun createLayer(client: DefaultApi, name: String, digest: String, session: String, authorization: String?, progressListener: ProgressListener) {
         val nameforLocal = if (name.contains("/")) name.split("/")[1] else name.split("/")[0]
         val exists = localRegistryApi.existingLayers(nameforLocal, digest)
         val response: Response
-        try {
-            if (exists) {
-                log.info("layer:{},aready in local registry {},download from local", digest, localRegistryApi.apiClient.basePath)
-                response = localRegistryApi.pullLayer(nameforLocal, digest, authorization, progressListener)
-            } else {
-                response = client.pullLayer(name, digest, authorization, progressListener)
-            }
-        } catch (e: SocketTimeoutException) {
-            synchronized(downloadListenerMap) {
-                val process = downloadListenerMap.get(session)
-                process?.sink?.next(ProcessDetail().apply {
-                    this.error = true
-                    this.digest = digest
-                    this.message = "下载${digest}超时"
-                })
-                process?.isok = false
-                log.error("SocketTimeoutException process:{},sink:{}",process==null,process?.sink==null)
-                process?.sink?.complete()
-            }
-            throw e
+
+        if (exists) {
+            log.info("layer:{},aready in local registry {},download from local", digest, localRegistryApi.apiClient.basePath)
+            response = localRegistryApi.pullLayer(nameforLocal, digest, authorization, progressListener)
+        } else {
+            response = client.pullLayer(name, digest, authorization, progressListener)
         }
+
         log.info("file size:{}", response.header("Content-Length"))
 
         val filename = digest.replace("sha256:", "")

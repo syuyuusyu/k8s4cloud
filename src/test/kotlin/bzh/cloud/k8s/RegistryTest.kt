@@ -34,6 +34,10 @@ import io.kubernetes.client.openapi.models.*
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
 import io.kubernetes.client.util.Watch
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.openapitools.client.model.V2ManifestResult
 import sha256
 import java.io.FileReader
@@ -375,6 +379,25 @@ class RegistryTest {
                 println(String(byteArray))
             }
         }
+    }
+
+    @Test
+    fun coroutine() = runBlocking {
+        val job = launch {
+            delay(1000L)
+            println("aaaa")
+        }
+        launch {
+            println("2222")
+        }
+        coroutineScope {
+            println("Task from coroutine scope")
+        }
+        coroutineScope {
+            println("Task from coroutine scope222")
+        }
+        job.join()
+        println("bbbb")
     }
 
 

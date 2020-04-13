@@ -52,12 +52,10 @@ class RegistryController(
     }
 
     @GetMapping("/test",produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun test():Flux<String>{
-        return Flux.create { sink->
-            sink.next("aaa")
-            sink.next("nbbb")
-            sink.complete()
-        }
+    fun test():Mono<String>{
+        return Mono.just("aaa").doOnSuccess { log.info("cccc") }.map {
+        log.info("bbb")
+        "bbb"}
     }
 
 
@@ -105,13 +103,13 @@ class RegistryController(
     @GetMapping("/dockhub/{name}/mountImage/{tag}")
     fun mountImage(@PathVariable name: String,@PathVariable tag:String,@RequestParam(required=false) url:String?,@RequestParam(required=false) username:String?):Mono<DownloadInfo>{
         val (queryUrl,queryName) = doname(name,url,username)
-        return registryService.mountImage(queryUrl,queryName,tag)
+        return registryService.startDownloadOrMount(queryUrl,queryName,tag,SessionProgress.Operation.MOUNT)
     }
 
     @GetMapping("/dockhub/{name}/startdownload/{tag}")
     fun dockhubstartDownload(@PathVariable name: String, @PathVariable tag: String,@RequestParam(required=false) url:String?,@RequestParam(required=false) username:String?): Mono<DownloadInfo> {
         val (queryUrl,queryName) = doname(name,url,username)
-        return registryService.startDownload(queryUrl, queryName, tag,"download")
+        return registryService.startDownloadOrMount(queryUrl, queryName, tag,SessionProgress.Operation.DOWNLOAD)
     }
 
     @GetMapping("/dockhub/downloaddetail/{session}", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
@@ -121,7 +119,7 @@ class RegistryController(
     fun dockhubdownloadimg(@PathVariable session: String, response: ServerHttpResponse): Mono<Resource> = registryService.downloadimg( session, response)
 
     @GetMapping("/{name}/startdownload/{tag}")
-    fun startDownload(@PathVariable name: String, @PathVariable tag: String): Mono<DownloadInfo> = registryService.startDownload(registryUrl, name, tag,"download")
+    fun startDownload(@PathVariable name: String, @PathVariable tag: String): Mono<DownloadInfo> = registryService.startDownloadOrMount(registryUrl, name, tag,SessionProgress.Operation.DOWNLOAD)
 
     @GetMapping("/downloaddetail/{session}", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun downloaddetail(@PathVariable session: String): Flux<ProcessDetail> = registryService.processdetail(session)
@@ -155,7 +153,7 @@ class RegistryController(
                             err("上传文件中没有名称和版本信息，必须指定")
                         }else{
                             try{
-                                registryService.upload(session,nop.orElse(""),top.orElse(""))
+                                registryService.upload(session,nop.orElse(""),top.orElse(""),null)
                             }catch (e:NoSuchFileException){
                                 e.printStackTrace()
                                 return@flatMap err("上传文件出错,文件内容缺失${e}")

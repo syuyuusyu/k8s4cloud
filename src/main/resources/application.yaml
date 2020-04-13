@@ -19,10 +19,10 @@ server:
 
 
 self:
-  registryUrl: http://192.168.50.28:5000
-  #registryUrl: http://127.0.0.1:5000
+  #registryUrl: http://192.168.50.28:5000
+  registryUrl: http://127.0.0.1:5000
 
-  #officalRegistryUrl: https://index.docker.io
+  #officalRegistryUrl: https://registry.aliyuncs.com
   officalRegistryUrl: https://hub-mirror.c.163.com
   #officalRegistryUrl: https://dockerhub.azk8s.cn
   #officalRegistryUrl: https://registry.docker-cn.com
