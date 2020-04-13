@@ -42,12 +42,7 @@ class ProgressResponseBody(
         }
         return bufferedSource!!;
     }
-
-//    override fun source(): BufferedSource {
-//        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-//        val input = responseBody.byteStream()
-//    }
-
+    
     private fun source(source: Source): Source? {
         return object : ForwardingSource(source) {
             var totalBytesRead = 0L

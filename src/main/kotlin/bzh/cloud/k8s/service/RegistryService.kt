@@ -6,9 +6,7 @@ import bzh.cloud.k8s.utils.JsonUtil
 import bzh.cloud.k8s.utils.TAR
 import com.fasterxml.jackson.core.type.TypeReference
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import org.apache.commons.lang.RandomStringUtils
@@ -30,25 +28,18 @@ import reactor.core.publisher.Mono
 import sha256
 import java.io.ByteArrayInputStream
 import java.io.File
-import java.lang.RuntimeException
 import java.net.Proxy
 import java.net.SocketTimeoutException
-import java.util.*
-import java.util.concurrent.Executor
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import java.nio.file.NoSuchFileException
 
 @Service
 class RegistryService(
         val localRegistryApi: DefaultApi,
         val proxy: Proxy,
-        val kubeProperties: KubeProperties,
-        val threadPool: Executor
+        val kubeProperties: KubeProperties
 ) {
 
-    @Value("\${self.authRegistryUrl}")
-    lateinit var authRegistryUrl: String
     @Value("\${self.tempFileDir}")
     lateinit var tempFileDir: String
 
