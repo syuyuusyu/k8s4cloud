@@ -24,6 +24,7 @@ import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api
 import io.kubernetes.client.openapi.models.*
 import io.kubernetes.client.util.Watch
+import kotlinx.coroutines.*
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpResponse
@@ -55,7 +56,7 @@ class KubeController(
         val extensionApi: ExtensionsV1beta1Api,
         val configMapService: ConfigMapService,
         val threadPool : Executor
-) {
+): CoroutineScope by CoroutineScope(Dispatchers.Default) {
     @Value("\${self.kubeConfigPath}")
     lateinit var kubeConfigPath: String
 
@@ -96,25 +97,39 @@ class KubeController(
                 api.listResourceQuotaForAllNamespacesCall(null, null, "",
                         "", null, null, null, 0, true,null),
                 object : TypeToken<Watch.Response<V1ResourceQuota>>() {}.type )
-
+        var job:Job?=null
         return Flux.create<V1ResourceQuota> { sink->
             val p = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
             sink.next(p)
-            threadPool.execute {
+            job=launch {
+
                 try {
                     watch.forEach {
+                        log.info("watch quota:{}",it.`object`.metadata?.name)
                         sink.next(it.`object`)
                     }
-                }catch (e:RuntimeException){
+                } catch (e: RuntimeException) {
+                    log.info("watch  quota RuntimeException")
                     e.printStackTrace()
                 }
+
             }
-            Flux.interval(Duration.ofSeconds(40)).map {
-                sink.next(p)
-            }.subscribe()
+            launch {
+                repeat(1000) {
+                    if(sink.isCancelled){
+                        this.cancel()
+                    }
+                    delay(20*1000)
+                    //log.info("heart beat,{}",sink.isCancelled)
+                    sink.next(p)
+                }
+            }
         }.doFinally{
-            log.info("done")
-            watch.close()
+            log.info("/watch/allResourcequota complete")
+            launch {
+                job?.cancelAndJoin()
+                watch.close()
+            }
         }
     }
 

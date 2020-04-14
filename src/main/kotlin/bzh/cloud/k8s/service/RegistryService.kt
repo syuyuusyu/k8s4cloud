@@ -43,7 +43,6 @@ class RegistryService(
     @Value("\${self.tempFileDir}")
     lateinit var tempFileDir: String
 
-
     companion object {
         private val log: Logger = LoggerFactory.getLogger(RegistryService::class.java)
     }
@@ -206,8 +205,7 @@ class RegistryService(
                         compressDownFile(session)
                         upload(session, name, tag,process)
                     }
-                    else -> {
-                    }
+                    else -> { }
                 }
 
             }

@@ -1,15 +1,14 @@
 package bzh.cloud.k8s.controller
 
 
-import bzh.cloud.k8s.config.KubeProperties
 import bzh.cloud.k8s.config.watchClient
-import bzh.cloud.k8s.expansion.watchLog
+
 import bzh.cloud.k8s.service.PodService
-import bzh.cloud.k8s.utils.SpringUtil
+
 import com.google.gson.reflect.TypeToken
-import io.kubernetes.client.PodLogs
+
 import io.kubernetes.client.custom.V1Patch
-import io.kubernetes.client.openapi.ApiCallback
+
 import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.ApiException
 import io.kubernetes.client.openapi.apis.CoreV1Api
@@ -20,9 +19,7 @@ import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
 import io.kubernetes.client.util.Watch
 import kotlinx.coroutines.*
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Response
+import org.apache.commons.lang.RandomStringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -30,11 +27,10 @@ import org.springframework.http.MediaType
 import org.springframework.util.StringUtils
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
+import reactor.core.publisher.FluxSink
 import java.io.FileReader
-import java.io.IOException
 import java.time.Duration
 import java.util.concurrent.Executor
-import java.util.concurrent.TimeUnit
 
 
 @RestController
@@ -44,7 +40,7 @@ class PodController(
         val podService: PodService,
         val apiClient: ApiClient,
         val threadPool: Executor
-) {
+) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
     @Value("\${self.kubeConfigPath}")
     lateinit var kubeConfigPath: String
@@ -68,81 +64,61 @@ class PodController(
         //val list = kubeApi.listPodForAllNamespaces(null, null, null, null, null, "true", null, null,null)
         this.createNsifNotExist(ns)
         var labelSelector = ""
-        val list1 = kubeApi.listNamespacedPod(ns,"true",null,null,null,
-                null,null,null,0,false) .items
+        val list1 = kubeApi.listNamespacedPod(ns, "true", null, null, null,
+                null, null, null, 0, false).items
         //val list = podService.pods(arrayOf(ns).asList())
         return Flux.fromIterable(list1)
     }
 
 
     @GetMapping("/watch/namespace/{ns}/Pod", produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-    fun watchList(@PathVariable ns: String): Flux<V1Pod>  {
+    fun watchList(@PathVariable ns: String): Flux<V1Pod> {
         val (client, api) = watchClient()
-
+        val session = RandomStringUtils.randomAlphanumeric(8)
         val watch = Watch.createWatch<V1Pod>(
                 client,
                 api.listNamespacedPodCall(ns, null, null, null, null, null, 5, null, null, java.lang.Boolean.TRUE, null),
                 object : TypeToken<Watch.Response<V1Pod>>() {}.type)
+
+        var job:Job?=null
         return Flux.create<V1Pod> { sink ->
 
             val p = V1PodBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
             sink.next(p)
-//            runBlocking {
-//                launch {
-//                    try {
-//                        watch.forEach {
-//                            //log.info("watch pod:{}",it.`object`)
-//                            sink.next(it.`object`)
-//                        }
-//                    } catch (e: RuntimeException) {
-//                        //e.printStackTrace()
-//                    }
-//
-//                }
-//                launch {
-//                    log.info("heart beat")
-//                    repeat(1000){
-//                        //delay(4*1000)
-//
-//                        sink.next(p)
-//                    }
-//                }
-//            }
-            threadPool.execute {
-                sink.next(p)
+
+            job=launch {
                 try {
                     watch.forEach {
-                        //log.info("watch pod:{}",it.`object`)
+                        log.info("watch pod:{}", it.`object`.metadata?.name)
                         sink.next(it.`object`)
                     }
-                }catch (e:RuntimeException){
-                    //e.printStackTrace()
+                } catch (e: RuntimeException) {
+                    log.info("watch pod RuntimeException session:{},ns:{}", session, ns)
+                    e.printStackTrace()
                 }
 
             }
-            Flux.interval(Duration.ofSeconds(40)).map {
-                sink.next(p)
-            }.subscribe()
-
-        }.doFinally {
-            log.info("doFinally")
-            watch.close()
-        }.doOnComplete {
-            log.info("doOnComplete")
-            //watch.close()
-        }.doAfterTerminate {
-            log.info("doAfterTerminate")
-            //watch.close()
-        }.doOnError {
-            log.info("doOnError")
-            //watch.close()
-        }.doOnCancel {
-            log.info("doOnCancel")
-            //watch.close()
+            launch {
+                repeat(1000) {
+                    if (sink.isCancelled) {
+                        sink.complete()
+                        this.cancel()
+                    }
+                    delay(20 * 1000)
+                    log.info("heart beat,{},ns:{}",sink.isCancelled,ns)
+                    sink.next(p)
+                }
+            }
+        }.doFinally{
+            log.info("doFinally watch pod ns:{}",ns)
+            launch {
+                job?.cancelAndJoin()
+                watch.close()
+            }
         }
     }
 
-    @GetMapping(path = ["/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
+    @GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
     fun log(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
 
         val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
@@ -150,57 +126,50 @@ class PodController(
 
         return Flux.interval(Duration.ofSeconds(2))
                 .map {
+                    log.info("/watch/log repeat")
                     val clog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
                             null, null, false, 2, 10, false)
                     if (it == 0L) firstlog else if (StringUtils.isEmpty(clog)) "" else clog
                 }.doFinally {
-                    log.debug("log stream close!!")
+                    log.info("log stream close!!")
                 }
     }
 
-    @GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-    fun log2(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String>  {
+    //@GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
+    fun log2(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
         val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
                 Int.MAX_VALUE, null, false, Int.MAX_VALUE, 100, false)
 
-        val (_,api) = watchClient()
+        val (_, api) = watchClient()
 
-        val call1 = api.readNamespacedPodLogCall(pname,ns,if (cname == "undefined") null else cname,
-                true,null,null,false,2,10,false,null)
+        val call1 = api.readNamespacedPodLogCall(pname, ns, if (cname == "undefined") null else cname,
+                true, null, null, false, 2, 10, false, null)
 
 
         val response = call1.execute()
         val input = response.body()?.byteStream()!!
-        var gono = true
+        //var gono = true
 
-        return Flux.create<String> { sink->
-            sink.next(if(StringUtils.isEmpty(firstlog)) "" else firstlog)
-//            launch {
-//                while (gono){
-//                    try {
-//                        delay(1000)
-//                        val count= input.available()
-//                        log.info("{}",count)
-//                        val byteArray = ByteArray(count)
-//                        input.read(byteArray)
-//                        sink.next(String(byteArray))
-//                    }catch (e:Exception){
-//
-//                    }
-//
-//                }
-//            }
-            threadPool.execute {
-                while (gono){
-                    try {
-                        TimeUnit.SECONDS.sleep(1);
-                        val count= input.available()
-                        log.info("{}",count)
-                        val byteArray = ByteArray(count)
-                        input.read(byteArray)
-                        sink.next(String(byteArray))
-                    }catch (e:Exception){
 
+        var job:Job? = null
+        return Flux.create<String> { sink ->
+            sink.next(if (StringUtils.isEmpty(firstlog)) "" else firstlog)
+            job = launch {
+                while (isActive) {
+
+                    launch {
+                        try {
+                            log.info("watch log repeat")
+                            delay(1000)
+                            val count = input.available()
+                            log.info("watch log {}", count)
+                            val byteArray = ByteArray(count)
+                            input.read(byteArray)
+                            sink.next(String(byteArray))
+                        } catch (e: Exception) {
+                            log.info("watch log Exception")
+                            e.printStackTrace()
+                        }
                     }
 
                 }
@@ -208,9 +177,11 @@ class PodController(
 
         }.doFinally {
             log.info("/watch/log complete")
-            gono = false
-            input.close()
-            response.close()
+            launch {
+                job?.cancelAndJoin()
+                input.close()
+                response.close()
+            }
         }
 
 
