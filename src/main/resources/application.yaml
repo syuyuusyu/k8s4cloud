@@ -13,6 +13,9 @@ logging:
     io.kubernetes: info
     org:
       springframework: info
+    javax:
+      net:
+        ssl: info
 
 server:
   port: 8002

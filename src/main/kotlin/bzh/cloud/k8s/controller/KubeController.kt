@@ -97,11 +97,11 @@ class KubeController(
                 api.listResourceQuotaForAllNamespacesCall(null, null, "",
                         "", null, null, null, 0, true,null),
                 object : TypeToken<Watch.Response<V1ResourceQuota>>() {}.type )
-        var job:Job?=null
+        //var job:Job?=null
         return Flux.create<V1ResourceQuota> { sink->
             val p = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
             sink.next(p)
-            job=launch {
+            launch {
 
                 try {
                     watch.forEach {
@@ -110,9 +110,8 @@ class KubeController(
                     }
                 } catch (e: RuntimeException) {
                     log.info("watch  quota RuntimeException")
-                    e.printStackTrace()
+                    //e.printStackTrace()
                 }
-
             }
             launch {
                 repeat(1000) {
@@ -126,10 +125,7 @@ class KubeController(
             }
         }.doFinally{
             log.info("/watch/allResourcequota complete")
-            launch {
-                job?.cancelAndJoin()
-                watch.close()
-            }
+            watch.close()
         }
     }
 

@@ -42,7 +42,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.jetbrains.kotlinx</groupId>
-			<artifactId>kotlinx-coroutines-reactor</artifactId>
+<!--			<artifactId>kotlinx-coroutines-reactor</artifactId>-->
+			<artifactId>kotlinx-coroutines-core</artifactId>
 		</dependency>
 
 		<dependency>
@@ -92,8 +93,10 @@
 			<plugin>
 				<groupId>org.jetbrains.kotlin</groupId>
 				<artifactId>kotlin-maven-plugin</artifactId>
+
 				<configuration>
 					<args>
+						<arg>-Xcoroutines=enable</arg>
 						<arg>-Xjsr305=strict</arg>
 					</args>
 					<compilerPlugins>

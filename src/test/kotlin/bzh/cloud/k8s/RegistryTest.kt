@@ -315,7 +315,7 @@ class RegistryTest {
     }
 
     @Test
-    fun watch(){
+    fun watch() = runBlocking{
         val path = (SpringUtil.getBean("self-bzh.cloud.k8s.config.KubeProperties") as KubeProperties).kubeConfigPath
         val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(path))).build()
         val httpClient = client.getHttpClient().newBuilder().readTimeout(0, TimeUnit.SECONDS).build();
@@ -324,12 +324,20 @@ class RegistryTest {
         val api = CoreV1Api()
 
         val watch = Watch.createWatch<V1Pod>(client,
-                api.listNamespacedPodCall("isp-ns",null,null,null,null,null,
+                api.listNamespacedPodCall("test",null,null,null,null,null,
                 5,null,null,true,null),
                 object : TypeToken<Watch.Response<V1Pod>>() {}.type )
-        watch.forEach {
-            log.info(it.`object`.metadata?.name)
+        val job = launch {
+            watch.forEach {
+                log.info(it.`object`.metadata?.name)
+            }
+            log.info("3333")
         }
+        log.info("1111")
+        delay(1000*10)
+        log.info("------")
+        job.cancel()
+        log.info("222")
 
 
 
