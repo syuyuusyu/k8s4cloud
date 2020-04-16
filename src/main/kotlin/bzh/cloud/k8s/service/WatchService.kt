@@ -1,7 +1,6 @@
 package bzh.cloud.k8s.service
 
 import bzh.cloud.k8s.controller.PodController
-import bzh.cloud.k8s.controller.RegistryController
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.openapi.models.V1Pod
 import io.kubernetes.client.openapi.models.V1PodBuilder
@@ -21,20 +20,21 @@ import kotlin.collections.HashSet
 
 @Service
 class WatchService(
-        //val threadPool: Executor,
+        val threadPool: Executor
         //val atomicThread : ExecutorCoroutineDispatcher
 ) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
     companion object {
-        private val log: Logger = LoggerFactory.getLogger(PodController::class.java)
+        private val log: Logger = LoggerFactory.getLogger(WatchService::class.java)
     }
+    val heartbeatThread = newSingleThreadContext("heartbeatThread")
 
     //-----------pod-------------------
     private var podWatchRuning = AtomicBoolean().apply { set(false) }
     private val podDispatcherSink = Collections.synchronizedSet(HashSet<Pair<String, FluxSink<V1Pod>>>())
     private val cachePod = HashSet<V1Pod>()
 
-    fun heartbeat() = launch {
+    fun heartbeat() = launch(heartbeatThread) {
         val pod = V1PodBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
         val quota = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
         while (isActive) {
@@ -93,7 +93,6 @@ class WatchService(
         podWatchRuning.set(true)
 
         doPodWatch()
-        log.info("sdsdsd")
     }
 
     fun closepodWatch() {
@@ -104,11 +103,11 @@ class WatchService(
     }
 
     fun doPodWatch() {
-        launch {
+        launch(threadPool.asCoroutineDispatcher()) {
             try {
                 log.info("start watch pod")
                 podWatch?.forEach {
-                    log.info("watch quota:{}", it.`object`.metadata?.name)
+                    log.info("watch pod:{}", it.`object`.metadata?.name)
                     addTocachePod(it.`object`)
                     podDispatcherSink.forEach { (ns, sink) ->
                         if (it.`object`.metadata?.namespace == ns) {
@@ -165,7 +164,6 @@ class WatchService(
         quotaWatchRuning.set(true)
 
         doQuotaWatch()
-        log.info("sdsdsd")
     }
 
     fun closequotaWatch() {
@@ -176,7 +174,7 @@ class WatchService(
     }
 
     fun doQuotaWatch() {
-        launch {
+        launch(threadPool.asCoroutineDispatcher()) {
             try {
                 log.info("start watch quota")
                 quotaWatch?.forEach {

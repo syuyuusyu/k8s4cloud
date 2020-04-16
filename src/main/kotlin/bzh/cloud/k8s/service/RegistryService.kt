@@ -7,6 +7,7 @@ import bzh.cloud.k8s.utils.JsonUtil
 import bzh.cloud.k8s.utils.TAR
 import com.fasterxml.jackson.core.type.TypeReference
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -34,12 +35,14 @@ import java.net.Proxy
 import java.net.SocketTimeoutException
 import kotlin.collections.ArrayList
 import java.nio.file.NoSuchFileException
+import java.util.concurrent.Executor
 
 @Service
 class RegistryService(
         val localRegistryApi: DefaultApi,
         val proxy: Proxy,
-        val kubeProperties: KubeProperties
+        val kubeProperties: KubeProperties,
+        val threadPool: Executor
 ) {
 
     @Value("\${self.tempFileDir}")
@@ -165,7 +168,7 @@ class RegistryService(
                 it.layers!!.forEach { m -> digests.add(m.digest!!) }
             }
         }.doOnSuccess {
-            process.launch {
+            process.launch(threadPool.asCoroutineDispatcher()) {
                 log.info("doOnSuccess startDownloadOrMount")
                 val job = process.launch {
                     try {
@@ -318,7 +321,7 @@ class RegistryService(
             completeUpload()
             return
         }
-        process.launch {
+        process.launch(threadPool.asCoroutineDispatcher()) {
             val job = process.launch {
                 log.info("needUplayers.size:{}",needUplayers.size)
                 needUplayers.forEach { (digest, fileName) ->

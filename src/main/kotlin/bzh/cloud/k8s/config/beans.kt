@@ -88,13 +88,13 @@ fun beans() = org.springframework.context.support.beans {
         ProtoClient(client)
     }
 
-//    bean<Executor>("threadPool"){
-//        Executors.newFixedThreadPool(20) { r ->
-//            val t = Thread(r)
-//            t.isDaemon = true
-//            t
-//        }
-//    }
+    bean<Executor>("threadPool"){
+        Executors.newFixedThreadPool(20) { r ->
+            val t = Thread(r)
+            t.isDaemon = true
+            t
+        }
+    }
 
     bean<ExecutorCoroutineDispatcher>("atomicThread") {
         newSingleThreadContext("atomicThread")
