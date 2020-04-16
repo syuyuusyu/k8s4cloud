@@ -1,6 +1,7 @@
 package bzh.cloud.k8s.service
 
 import bzh.cloud.k8s.config.KubeProperties
+import bzh.cloud.k8s.controller.PodController
 import bzh.cloud.k8s.expansion.*
 import bzh.cloud.k8s.utils.JsonUtil
 import bzh.cloud.k8s.utils.TAR
@@ -22,6 +23,7 @@ import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpStatus
 import org.springframework.http.server.reactive.ServerHttpResponse
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -45,6 +47,11 @@ class RegistryService(
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(RegistryService::class.java)
+    }
+
+    @Scheduled(fixedDelay = 1000 )
+    fun heartbeat(){
+        log.info("sdsdsd")
     }
 
     fun createClient(url: String): DefaultApi {
@@ -340,7 +347,7 @@ class RegistryService(
             }
             log.info("wait job done....")
             job.join()
-            log.info("job donw")
+            log.info("job done")
             completeUpload()
         }
     }

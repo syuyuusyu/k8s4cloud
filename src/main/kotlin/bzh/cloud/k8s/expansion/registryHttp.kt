@@ -138,7 +138,7 @@ class SessionProgress private constructor(val session: String) : CoroutineScope 
     lateinit var operation:Operation
     companion object{
         private val log: Logger = LoggerFactory.getLogger(ProgressListener::class.java)
-        val atomicThread = newSingleThreadContext("atomicThread")
+        val atomicThread = SpringUtil.getBean("atomicThread") as ExecutorCoroutineDispatcher
         private val sessionMap = HashMap<String, SessionProgress>()
         fun getSessionProgress(session:String) = runBlocking{
             withContext(atomicThread){

@@ -3,7 +3,7 @@ package bzh.cloud.k8s.controller
 
 import bzh.cloud.k8s.config.watchClient
 import bzh.cloud.k8s.service.PodService
-import bzh.cloud.k8s.utils.JsonUtil
+import bzh.cloud.k8s.service.WatchService
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import io.kubernetes.client.custom.V1Patch
@@ -22,9 +22,11 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.util.StringUtils
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
+import reactor.core.publisher.FluxSink
 import java.io.FileReader
 import java.io.IOException
 import java.io.StringReader
@@ -38,14 +40,18 @@ class PodController(
         val kubeApi: CoreV1Api,
         val podService: PodService,
         val apiClient: ApiClient,
-        val threadPool: Executor
+        val threadPool: Executor,
+        val watchService: WatchService
 ) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
     @Value("\${self.kubeConfigPath}")
     lateinit var kubeConfigPath: String
 
+
     companion object {
         private val log: Logger = LoggerFactory.getLogger(PodController::class.java)
+        val heartbeatThread = newSingleThreadContext("heartbeatThread")
+        val heartbeatSinkList = ArrayList<FluxSink<*>>()
     }
 
     private fun createNsifNotExist(ns: String) {
@@ -56,6 +62,12 @@ class PodController(
             val nsobj = V1NamespaceBuilder().withNewMetadata().withName(ns).endMetadata().build()
             kubeApi.createNamespace(nsobj, "false", null, null)
         }
+    }
+
+
+    @Scheduled(fixedDelay = 1000 )
+    fun heartbeat(){
+        log.info("sdsdsd")
     }
 
     @GetMapping("/namespace/{ns}/Pod")
@@ -106,56 +118,62 @@ class PodController(
             true
         } else false
     }
+//    @GetMapping("/watch/namespace/{ns}/Pod", produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
+//    fun watchList(@PathVariable ns: String): Flux<V1Pod>  {
+//        val (client, api) = watchClient()
+//        val session = RandomStringUtils.randomAlphanumeric(8)
+//        val watch = Watch.createWatch<V1Pod>(
+//                client,
+//                api.listNamespacedPodCall(ns, null, null, null, null, null, 5, null, null, java.lang.Boolean.TRUE, null),
+//                object : TypeToken<Watch.Response<V1Pod>>() {}.type)
+//
+//        return Flux.create<V1Pod> { sink ->
+//
+//            val p = V1PodBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
+//            sink.next(p)
+//            launch {
+//                try {
+//                    log.info("start watch")
+//                    watch.forEach {
+//                        log.info("watch quota:{}",it.`object`.metadata?.name)
+//                        sink.next(it.`object`)
+//                    }
+//
+//                    //val pod = JsonUtil.jsonToBean(json,V1Pod::class.java)
+//                    //sink.next(pod)
+//                } catch (e: Exception) {
+//                    log.info("watch pod RuntimeException session:{},ns:{}", session, ns)
+//                    //e.printStackTrace()
+//                }finally {
+//                    log.info("watch pod close watch")
+//                }
+//            }
+//
+//            launch  {
+//                repeat(1000) {
+//                    if (sink.isCancelled) {
+//                        sink.complete()
+//                        this.cancel()
+//                    }
+//                    delay(20 * 1000)
+//                    log.info("heart beat,{},ns:{}",sink.isCancelled,ns)
+//                    sink.next(p)
+//                }
+//            }
+//            log.info("end job")
+//        }.doFinally{
+//            log.info("doFinally watch pod ns:{}",ns)
+//            watch.close()
+//
+//        }
+//    }
+
     @GetMapping("/watch/namespace/{ns}/Pod", produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
     fun watchList(@PathVariable ns: String): Flux<V1Pod>  {
-        val (client, api) = watchClient()
-        val session = RandomStringUtils.randomAlphanumeric(8)
-        val watch = Watch.createWatch<V1Pod>(
-                client,
-                api.listNamespacedPodCall(ns, null, null, null, null, null, 5, null, null, java.lang.Boolean.TRUE, null),
-                object : TypeToken<Watch.Response<V1Pod>>() {}.type)
-//        val call = api.listNamespacedPodCall(ns, null, null, null, null, null,
-//                5, null, null, java.lang.Boolean.TRUE, null)
-//        val reponse = call.execute()
-        //var job:Job?=null
-        return Flux.create<V1Pod> { sink ->
 
-            val p = V1PodBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
-            sink.next(p)
 
-            launch {
-                try {
-                    log.info("start watch")
-                    watch.forEach {
-                        log.info("watch quota:{}",it.`object`.metadata?.name)
-                        sink.next(it.`object`)
-                    }
-
-                    //val pod = JsonUtil.jsonToBean(json,V1Pod::class.java)
-                    //sink.next(pod)
-                } catch (e: Exception) {
-                    log.info("watch pod RuntimeException session:{},ns:{}", session, ns)
-                    //e.printStackTrace()
-                }finally {
-                    log.info("watch pod close watch")
-                }
-            }
-            //job!!.start()
-            launch {
-                repeat(1000) {
-                    if (sink.isCancelled) {
-                        sink.complete()
-                        this.cancel()
-                    }
-                    delay(20 * 1000)
-                    log.info("heart beat,{},ns:{}",sink.isCancelled,ns)
-                    sink.next(p)
-                }
-            }
-            log.info("end job")
-        }.doFinally{
+        return Flux.create<V1Pod> { watchService.addPodSink(ns,it) }.doFinally{
             log.info("doFinally watch pod ns:{}",ns)
-            watch.close()
 
         }
     }

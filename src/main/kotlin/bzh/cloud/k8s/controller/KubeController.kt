@@ -7,6 +7,7 @@ import bzh.cloud.k8s.config.UpdateClient
 import bzh.cloud.k8s.config.watchClient
 import bzh.cloud.k8s.expansion.metricsNode
 import bzh.cloud.k8s.service.ConfigMapService
+import bzh.cloud.k8s.service.WatchService
 import io.kubernetes.client.custom.V1Patch
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
@@ -55,7 +56,8 @@ class KubeController(
         val kubeApi: CoreV1Api,
         val extensionApi: ExtensionsV1beta1Api,
         val configMapService: ConfigMapService,
-        val threadPool : Executor
+        val threadPool : Executor,
+        val watchService: WatchService
 ): CoroutineScope by CoroutineScope(Dispatchers.Default) {
     @Value("\${self.kubeConfigPath}")
     lateinit var kubeConfigPath: String
@@ -89,43 +91,52 @@ class KubeController(
         }
     }
 
+//    @GetMapping("/watch/allResourcequota", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+//    fun watchlist(response: ServerHttpResponse):Flux<V1ResourceQuota>  {
+//        val (client,api) = watchClient()
+//
+//        val watch = Watch.createWatch<V1ResourceQuota>(client,
+//                api.listResourceQuotaForAllNamespacesCall(null, null, "",
+//                        "", null, null, null, 0, true,null),
+//                object : TypeToken<Watch.Response<V1ResourceQuota>>() {}.type )
+//        //var job:Job?=null
+//        return Flux.create<V1ResourceQuota> { sink->
+//            val p = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
+//            sink.next(p)
+//            launch {
+//
+//                try {
+//                    watch.forEach {
+//                        log.info("watch quota:{}",it.`object`.metadata?.name)
+//                        sink.next(it.`object`)
+//                    }
+//                } catch (e: RuntimeException) {
+//                    log.info("watch  quota RuntimeException")
+//                    //e.printStackTrace()
+//                }
+//            }
+//            launch {
+//                repeat(1000) {
+//                    if(sink.isCancelled){
+//                        this.cancel()
+//                    }
+//                    delay(20*1000)
+//                    //log.info("heart beat,{}",sink.isCancelled)
+//                    sink.next(p)
+//                }
+//            }
+//        }.doFinally{
+//            log.info("/watch/allResourcequota complete")
+//            watch.close()
+//        }
+//    }
+
     @GetMapping("/watch/allResourcequota", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun watchlist(response: ServerHttpResponse):Flux<V1ResourceQuota>  {
-        val (client,api) = watchClient()
 
-        val watch = Watch.createWatch<V1ResourceQuota>(client,
-                api.listResourceQuotaForAllNamespacesCall(null, null, "",
-                        "", null, null, null, 0, true,null),
-                object : TypeToken<Watch.Response<V1ResourceQuota>>() {}.type )
-        //var job:Job?=null
-        return Flux.create<V1ResourceQuota> { sink->
-            val p = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
-            sink.next(p)
-            launch {
-
-                try {
-                    watch.forEach {
-                        log.info("watch quota:{}",it.`object`.metadata?.name)
-                        sink.next(it.`object`)
-                    }
-                } catch (e: RuntimeException) {
-                    log.info("watch  quota RuntimeException")
-                    //e.printStackTrace()
-                }
-            }
-            launch {
-                repeat(1000) {
-                    if(sink.isCancelled){
-                        this.cancel()
-                    }
-                    delay(20*1000)
-                    //log.info("heart beat,{}",sink.isCancelled)
-                    sink.next(p)
-                }
-            }
-        }.doFinally{
+        return Flux.create<V1ResourceQuota> { watchService.addQuotaSink(it)}.doFinally{
             log.info("/watch/allResourcequota complete")
-            watch.close()
+
         }
     }
 

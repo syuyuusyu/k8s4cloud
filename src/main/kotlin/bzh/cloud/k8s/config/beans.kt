@@ -9,6 +9,8 @@ import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
+import kotlinx.coroutines.ExecutorCoroutineDispatcher
+import kotlinx.coroutines.newSingleThreadContext
 import okhttp3.OkHttpClient
 import org.openapitools.client.api.DefaultApi
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -86,12 +88,16 @@ fun beans() = org.springframework.context.support.beans {
         ProtoClient(client)
     }
 
-    bean<Executor>("threadPool"){
-        Executors.newFixedThreadPool(100) { r ->
-            val t = Thread(r)
-            t.isDaemon = true
-            t
-        }
+//    bean<Executor>("threadPool"){
+//        Executors.newFixedThreadPool(20) { r ->
+//            val t = Thread(r)
+//            t.isDaemon = true
+//            t
+//        }
+//    }
+
+    bean<ExecutorCoroutineDispatcher>("atomicThread") {
+        newSingleThreadContext("atomicThread")
     }
 
     //------ websocket -------

@@ -39,9 +39,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.openapitools.client.model.V2ManifestResult
+import reactor.core.publisher.FluxSink
 import sha256
 import java.io.FileReader
 import java.lang.reflect.Type
+import java.util.HashSet
 import java.util.concurrent.TimeUnit
 
 
@@ -408,6 +410,11 @@ class RegistryTest {
         println("bbbb")
     }
 
+    @Test
+    fun test12(){
+        val map = HashMap<String, HashSet<String>>()
+        val set = map["ns"] ?: HashSet()
+    }
 
 
 
