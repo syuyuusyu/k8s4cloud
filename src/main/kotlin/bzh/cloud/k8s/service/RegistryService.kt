@@ -183,7 +183,7 @@ class RegistryService(
                         throw e
                     }
                     result.layers!!.forEach { mani ->
-                        launch {
+                        launch(threadPool.asCoroutineDispatcher()) {
 
                             try {
                                 createLayer(apiClient, name, mani.digest!!, session, token, process.newListener(mani.digest!!))
@@ -325,7 +325,7 @@ class RegistryService(
             val job = process.launch {
                 log.info("needUplayers.size:{}",needUplayers.size)
                 needUplayers.forEach { (digest, fileName) ->
-                    launch {
+                    launch(threadPool.asCoroutineDispatcher()) {
                         val layerFile = File(fileName)
                         val progressListener = process.newListener(digest)
                         val (uploadUrl, _) = localRegistryApi.startUpload(name)

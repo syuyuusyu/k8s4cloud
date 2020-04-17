@@ -18,8 +18,8 @@ class K8s4cloudApplication{
 fun main(args: Array<String>) {
 	runApplication<K8s4cloudApplication>(*args)
 
-	val watchService = SpringUtil.getBean("watchService") as WatchService
-	watchService.heartbeat().start()
+//	val watchService = SpringUtil.getBean("watchService") as WatchService
+//	watchService.heartbeat().start()
 }
 
 

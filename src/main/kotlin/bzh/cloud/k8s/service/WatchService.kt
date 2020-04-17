@@ -27,54 +27,76 @@ class WatchService(
     companion object {
         private val log: Logger = LoggerFactory.getLogger(WatchService::class.java)
     }
-    val heartbeatThread = newSingleThreadContext("heartbeatThread")
+
+    private val heartbeatThread = newSingleThreadContext("heartbeatThread")
+    private val pod = V1PodBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
+    private val quota = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
 
     //-----------pod-------------------
     private var podWatchRuning = AtomicBoolean().apply { set(false) }
     private val podDispatcherSink = Collections.synchronizedSet(HashSet<Pair<String, FluxSink<V1Pod>>>())
     private val cachePod = HashSet<V1Pod>()
 
-    fun heartbeat() = launch(heartbeatThread) {
-        val pod = V1PodBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
-        val quota = V1ResourceQuotaBuilder().withNewMetadata().withName("heart beat").endMetadata().build()
-        while (isActive) {
-            log.info("watch heartbeat,podDispatcherSink.size:{},quotaDispatcherSink.size:{}", podDispatcherSink.size,quotaDispatcherSink.size)
-            delay(20 * 1000)
 
-            //---pod
-            val removepod = HashSet<Pair<String, FluxSink<V1Pod>>>()
-            for ((ns, sink) in podDispatcherSink) {
-                if (sink.isCancelled) {
-                    removepod.add(Pair(ns, sink))
-                } else {
-                    sink.next(pod)
-                }
-            }
-            podDispatcherSink.removeAll(removepod)
-            if (podDispatcherSink.size == 0) {
-                closepodWatch()
-            }
+    private var heartbeatRuning = AtomicBoolean().apply { set(false) }
+    fun heartbeat() {
+        heartbeatRuning.set(true)
+        launch(heartbeatThread) {
 
-            //--quota
-            val removequota = HashSet<FluxSink<V1ResourceQuota>>()
-            for(sink in quotaDispatcherSink){
-                if(sink.isCancelled){
-                    removequota.add(sink)
-                }else{
-                    sink.next(quota)
+            while (isActive) {
+                log.info("watch heartbeat,podDispatcherSink.size:{},quotaDispatcherSink.size:{}", podDispatcherSink.size, quotaDispatcherSink.size)
+                delay(20 * 1000)
+
+                //---pod
+                val removepod = HashSet<Pair<String, FluxSink<V1Pod>>>()
+                for ((ns, sink) in podDispatcherSink) {
+                    if (sink.isCancelled) {
+                        removepod.add(Pair(ns, sink))
+                    } else {
+                        sink.next(pod)
+                    }
                 }
-            }
-            quotaDispatcherSink.removeAll(removequota)
-            if(quotaDispatcherSink.size==0){
-                closequotaWatch()
+                podDispatcherSink.removeAll(removepod)
+                if (podDispatcherSink.size == 0) {
+                    closepodWatch()
+                }
+
+                //--quota
+                val removequota = HashSet<FluxSink<V1ResourceQuota>>()
+                for (sink in quotaDispatcherSink) {
+                    if (sink.isCancelled) {
+                        removequota.add(sink)
+                    } else {
+                        sink.next(quota)
+                    }
+                }
+                quotaDispatcherSink.removeAll(removequota)
+                if (quotaDispatcherSink.size == 0) {
+                    closequotaWatch()
+                }
+
+                if (quotaDispatcherSink.size == 0 && podDispatcherSink.size == 0) {
+                    log.info("cancel heartbeat")
+                    heartbeatRuning.set(false)
+                    this.cancel()
+                }
+
             }
 
         }
     }
 
+
     fun addPodSink(ns: String, sink: FluxSink<V1Pod>) {
+        sink.next(pod)
         if (!podWatchRuning.get()) {
+            podWatchRuning.set(true)
             initpodWatch()
+        }
+        log.info("heartbeatRuning:{}", heartbeatRuning)
+        if (!heartbeatRuning.get()) {
+            heartbeat()
+            log.info("start heartbeat ")
         }
         cachePod.filter { it.metadata?.namespace == ns }.forEach { sink.next(it) }
         podDispatcherSink.add(Pair(ns, sink))
@@ -90,7 +112,7 @@ class WatchService(
                 api.listPodForAllNamespacesCall(null, null, null, null, null, null,
                         null, null, java.lang.Boolean.TRUE, null),
                 object : TypeToken<Watch.Response<V1Pod>>() {}.type)
-        podWatchRuning.set(true)
+
 
         doPodWatch()
     }
@@ -143,8 +165,15 @@ class WatchService(
 
 
     fun addQuotaSink(sink: FluxSink<V1ResourceQuota>) {
+        sink.next(quota)
         if (!quotaWatchRuning.get()) {
+            quotaWatchRuning.set(true)
             initquotaWatch()
+        }
+        log.info("heartbeatRuning:{}", heartbeatRuning)
+        if (!heartbeatRuning.get()) {
+            heartbeat()
+            log.info("start heartbeat ")
         }
         cacheQuota.forEach { sink.next(it) }
         quotaDispatcherSink.add(sink)
@@ -161,7 +190,7 @@ class WatchService(
                 api.listResourceQuotaForAllNamespacesCall(null, null, "",
                         "", null, null, null, 0, true, null),
                 object : TypeToken<Watch.Response<V1ResourceQuota>>() {}.type)
-        quotaWatchRuning.set(true)
+
 
         doQuotaWatch()
     }
