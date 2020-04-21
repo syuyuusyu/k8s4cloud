@@ -2,15 +2,26 @@ package bzh.cloud.k8s
 
 
 import bzh.cloud.k8s.config.KubeProperties
-import bzh.cloud.k8s.controller.KubeController
-import bzh.cloud.k8s.controller.RegistryController
-import bzh.cloud.k8s.expansion.*
-import bzh.cloud.k8s.service.RegistryService
+import bzh.cloud.k8s.expansion.ManifestJson
+import bzh.cloud.k8s.expansion.metricsNode
+import bzh.cloud.k8s.expansion.readFromInputStream
 import bzh.cloud.k8s.utils.JsonUtil
 import bzh.cloud.k8s.utils.SpringUtil
 import bzh.cloud.k8s.utils.TAR
+import com.fasterxml.jackson.core.type.TypeReference
+import com.google.gson.reflect.TypeToken
+import io.kubernetes.client.PodLogs
 import io.kubernetes.client.custom.Quantity
+import io.kubernetes.client.openapi.Configuration
 import io.kubernetes.client.openapi.apis.CoreV1Api
+import io.kubernetes.client.openapi.models.*
+import io.kubernetes.client.util.ClientBuilder
+import io.kubernetes.client.util.KubeConfig
+import io.kubernetes.client.util.Watch
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -24,26 +35,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.web.reactive.function.client.WebClient
-import java.io.File
-import java.util.LinkedHashMap
-import com.fasterxml.jackson.core.type.TypeReference
-import com.google.gson.reflect.TypeToken
-import io.kubernetes.client.PodLogs
-import io.kubernetes.client.openapi.Configuration
-import io.kubernetes.client.openapi.models.*
-import io.kubernetes.client.util.ClientBuilder
-import io.kubernetes.client.util.KubeConfig
-import io.kubernetes.client.util.Watch
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import org.openapitools.client.model.V2ManifestResult
-import reactor.core.publisher.FluxSink
+import reactor.core.publisher.UnicastProcessor
 import sha256
+import java.io.File
 import java.io.FileReader
-import java.lang.reflect.Type
-import java.util.HashSet
 import java.util.concurrent.TimeUnit
 
 
@@ -412,8 +407,8 @@ class RegistryTest {
 
     @Test
     fun test12(){
-        val map = HashMap<String, HashSet<String>>()
-        val set = map["ns"] ?: HashSet()
+        val processor = UnicastProcessor.create<Int>()
+
     }
 
 

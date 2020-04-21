@@ -37,7 +37,6 @@ class WatchService(
     private val podDispatcherSink = Collections.synchronizedSet(HashSet<Pair<String, FluxSink<V1Pod>>>())
     private val cachePod = HashSet<V1Pod>()
 
-
     private var heartbeatRuning = AtomicBoolean().apply { set(false) }
     fun heartbeat() {
         heartbeatRuning.set(true)
@@ -86,11 +85,9 @@ class WatchService(
         }
     }
 
-
     fun addPodSink(ns: String, sink: FluxSink<V1Pod>) {
         sink.next(pod)
         if (!podWatchRuning.get()) {
-            podWatchRuning.set(true)
             initpodWatch()
         }
         log.info("heartbeatRuning:{}", heartbeatRuning)
@@ -100,31 +97,18 @@ class WatchService(
         }
         cachePod.filter { it.metadata?.namespace == ns }.forEach { sink.next(it) }
         podDispatcherSink.add(Pair(ns, sink))
-
     }
 
     var podWatch: Watch<V1Pod>? = null
 
-    fun initpodWatch() {
+    private fun initpodWatch() {
+        podWatchRuning.set(true)
         val (client, api) = bzh.cloud.k8s.config.watchClient()
         podWatch = Watch.createWatch<V1Pod>(
                 client,
                 api.listPodForAllNamespacesCall(null, null, null, null, null, null,
                         null, null, java.lang.Boolean.TRUE, null),
                 object : TypeToken<Watch.Response<V1Pod>>() {}.type)
-
-
-        doPodWatch()
-    }
-
-    fun closepodWatch() {
-        log.info("close podWatch")
-        podWatchRuning.set(false)
-        podWatch?.close()
-        cachePod.clear()
-    }
-
-    fun doPodWatch() {
         launch(threadPool.asCoroutineDispatcher()) {
             try {
                 log.info("start watch pod")
@@ -146,14 +130,21 @@ class WatchService(
         }
     }
 
-    fun addTocachePod(pod: V1Pod) {
+    private fun closepodWatch() {
+        log.info("close podWatch")
+        podWatchRuning.set(false)
+        podWatch?.close()
+        cachePod.clear()
+    }
+
+
+    private fun addTocachePod(pod: V1Pod) {
         if (pod.metadata?.deletionTimestamp != null) {
             val deleted = cachePod.find { it.metadata?.uid == pod.metadata?.uid }
             deleted?.let { cachePod.remove(it) }
             return
         }
-        val deleted = cachePod.find { it.metadata?.uid == pod.metadata?.uid }
-        deleted?.let { cachePod.remove(it) }
+        cachePod.find { it.metadata?.uid == pod.metadata?.uid }?.let { cachePod.remove(it) }
         cachePod.add(pod)
     }
 
@@ -177,32 +168,17 @@ class WatchService(
         }
         cacheQuota.forEach { sink.next(it) }
         quotaDispatcherSink.add(sink)
-
     }
 
     var quotaWatch: Watch<V1ResourceQuota>? = null
 
-    fun initquotaWatch() {
+    private fun initquotaWatch() {
         val (client, api) = bzh.cloud.k8s.config.watchClient()
-
         quotaWatch = Watch.createWatch<V1ResourceQuota>(
                 client,
                 api.listResourceQuotaForAllNamespacesCall(null, null, "",
                         "", null, null, null, 0, true, null),
                 object : TypeToken<Watch.Response<V1ResourceQuota>>() {}.type)
-
-
-        doQuotaWatch()
-    }
-
-    fun closequotaWatch() {
-        log.info("close quotaWatch")
-        quotaWatchRuning.set(false)
-        quotaWatch?.close()
-        cacheQuota.clear()
-    }
-
-    fun doQuotaWatch() {
         launch(threadPool.asCoroutineDispatcher()) {
             try {
                 log.info("start watch quota")
@@ -222,14 +198,20 @@ class WatchService(
         }
     }
 
-    fun addTocacheQuota(quota: V1ResourceQuota) {
+    private fun closequotaWatch() {
+        log.info("close quotaWatch")
+        quotaWatchRuning.set(false)
+        quotaWatch?.close()
+        cacheQuota.clear()
+    }
+
+    private fun addTocacheQuota(quota: V1ResourceQuota) {
         if (quota.metadata?.deletionTimestamp != null) {
             val deleted = cacheQuota.find { it.metadata?.uid == quota.metadata?.uid }
             deleted?.let { cacheQuota.remove(it) }
             return
         }
-        val deleted = cacheQuota.find { it.metadata?.uid == quota.metadata?.uid }
-        deleted?.let { cacheQuota.remove(it) }
+        cacheQuota.find { it.metadata?.uid == quota.metadata?.uid }?.let { cacheQuota.remove(it) }
         cacheQuota.add(quota)
     }
 
