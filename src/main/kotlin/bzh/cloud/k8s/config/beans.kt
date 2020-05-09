@@ -69,6 +69,7 @@ fun beans() = org.springframework.context.support.beans {
 
     bean<CoreV1Api>(name = "kubeApi") {
         val client = ref<ApiClient>()
+        client.setDebugging(true)
         CoreV1Api(client)
     }
 
@@ -88,7 +89,7 @@ fun beans() = org.springframework.context.support.beans {
         ProtoClient(client)
     }
 
-    bean<Executor>("threadPool"){
+    bean<Executor>("threadPool") {
         Executors.newFixedThreadPool(20) { r ->
             val t = Thread(r)
             t.isDaemon = true
@@ -144,6 +145,7 @@ fun beans() = org.springframework.context.support.beans {
         DefaultApi().apply {
             apiClient = org.openapitools.client.ApiClient().apply {
                 basePath = ref<KubeProperties>().registryUrl
+                this.setDebugging(true)
             }
         }
     }

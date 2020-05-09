@@ -1,6 +1,5 @@
 package bzh.cloud.k8s.service
 
-import bzh.cloud.k8s.controller.PodController
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.openapi.models.V1Pod
 import io.kubernetes.client.openapi.models.V1PodBuilder
@@ -79,7 +78,6 @@ class WatchService(
                     heartbeatRuning.set(false)
                     this.cancel()
                 }
-
             }
 
         }

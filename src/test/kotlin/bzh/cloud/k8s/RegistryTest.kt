@@ -5,6 +5,7 @@ import bzh.cloud.k8s.config.KubeProperties
 import bzh.cloud.k8s.expansion.ManifestJson
 import bzh.cloud.k8s.expansion.metricsNode
 import bzh.cloud.k8s.expansion.readFromInputStream
+import bzh.cloud.k8s.expansion.search
 import bzh.cloud.k8s.utils.JsonUtil
 import bzh.cloud.k8s.utils.SpringUtil
 import bzh.cloud.k8s.utils.TAR
@@ -22,10 +23,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import okhttp3.Call
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
+import okhttp3.*
 import org.junit.jupiter.api.Test
 import org.openapitools.client.ApiClient
 import org.openapitools.client.api.DefaultApi
@@ -407,11 +405,22 @@ class RegistryTest {
 
     @Test
     fun test12(){
-        val processor = UnicastProcessor.create<Int>()
+        val client = OkHttpClient()
+
+
+        //val body = RequestBody.create()
+
+        val request = Request.Builder()
+                .addHeader("Accept","application/json")
+                .url("https://20.18.6.16/admin/j_spring_security_check").get().build()
+        val call: Call = client.newCall(request)
+        var response:Response = call.execute()
+
+
+
+        val json = response.body()?.string()
 
     }
-
-
 
 
 

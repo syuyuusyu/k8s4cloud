@@ -4,7 +4,6 @@ import bzh.cloud.k8s.config.KubeProperties
 import bzh.cloud.k8s.utils.SpringUtil
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.models.NodeMetricsList
-import io.kubernetes.client.openapi.ApiCallback
 import io.kubernetes.client.openapi.Pair
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig

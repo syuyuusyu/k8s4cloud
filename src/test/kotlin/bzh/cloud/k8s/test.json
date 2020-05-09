@@ -1,143 +1,53 @@
 {
-  "type": "ADDED",
-  "object": {
-    "kind": "Pod",
-    "apiVersion": "v1",
-    "metadata": {
-      "name": "redis",
-      "namespace": "test",
-      "selfLink": "/api/v1/namespaces/test/pods/redis",
-      "uid": "97cdd207-203f-4b43-9e60-78cc941785b8",
-      "resourceVersion": "15353775",
-      "creationTimestamp": "2020-04-13T07:04:01Z",
-      "labels": {
-        "app": "redis"
+  "cantSensors": [],
+  "badSensors": [],
+  "detail": {
+    "conditions": [
+      {
+        "cno": 1,
+        "condname": "happentime",
+        "condval": "2020-05-08 03:25:54",
+        "id": "256",
+        "opecode": ">="
       },
-      "annotations": {
-        "kubernetes.io/limit-ranger": "LimitRanger plugin set: cpu, memory request for container redis; cpu, memory limit for container redis"
+      {
+        "cno": 2,
+        "condname": "happentime",
+        "condval": "2020-05-08 15:25:54",
+        "id": "257",
+        "opecode": "<="
+      },
+      {
+        "cno": 3,
+        "condname": "pst",
+        "condval": "0",
+        "id": "258",
+        "opecode": "="
+      },
+      {
+        "cno": 4,
+        "condname": "cmb",
+        "condval": "1",
+        "id": "259",
+        "opecode": "="
       }
-    },
-    "spec": {
-      "volumes": [
-        {
-          "name": "default-token-5lr2v",
-          "secret": {
-            "secretName": "default-token-5lr2v",
-            "defaultMode": 420
-          }
-        }
-      ],
-      "containers": [
-        {
-          "name": "redis",
-          "image": "192.168.50.28:5000/redis:latest",
-          "ports": [
-            {
-              "containerPort": 6379,
-              "protocol": "TCP"
-            }
-          ],
-          "resources": {
-            "limits": {
-              "cpu": "400m",
-              "memory": "500Mi"
-            },
-            "requests": {
-              "cpu": "400m",
-              "memory": "400Mi"
-            }
-          },
-          "volumeMounts": [
-            {
-              "name": "default-token-5lr2v",
-              "readOnly": true,
-              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
-            }
-          ],
-          "terminationMessagePath": "/dev/termination-log",
-          "terminationMessagePolicy": "File",
-          "imagePullPolicy": "Always"
-        }
-      ],
-      "restartPolicy": "Always",
-      "terminationGracePeriodSeconds": 30,
-      "dnsPolicy": "ClusterFirst",
-      "serviceAccountName": "default",
-      "serviceAccount": "default",
-      "nodeName": "k8s-node-2.novalocal",
-      "securityContext": {},
-      "schedulerName": "default-scheduler",
-      "tolerations": [
-        {
-          "key": "node.kubernetes.io/not-ready",
-          "operator": "Exists",
-          "effect": "NoExecute",
-          "tolerationSeconds": 300
-        },
-        {
-          "key": "node.kubernetes.io/unreachable",
-          "operator": "Exists",
-          "effect": "NoExecute",
-          "tolerationSeconds": 300
-        }
-      ],
-      "priority": 0,
-      "enableServiceLinks": true
-    },
-    "status": {
-      "phase": "Running",
-      "conditions": [
-        {
-          "type": "Initialized",
-          "status": "True",
-          "lastProbeTime": null,
-          "lastTransitionTime": "2020-04-13T07:04:01Z"
-        },
-        {
-          "type": "Ready",
-          "status": "True",
-          "lastProbeTime": null,
-          "lastTransitionTime": "2020-04-13T07:04:03Z"
-        },
-        {
-          "type": "ContainersReady",
-          "status": "True",
-          "lastProbeTime": null,
-          "lastTransitionTime": "2020-04-13T07:04:03Z"
-        },
-        {
-          "type": "PodScheduled",
-          "status": "True",
-          "lastProbeTime": null,
-          "lastTransitionTime": "2020-04-13T07:04:01Z"
-        }
-      ],
-      "hostIP": "192.168.50.23",
-      "podIP": "10.47.0.3",
-      "podIPs": [
-        {
-          "ip": "10.47.0.3"
-        }
-      ],
-      "startTime": "2020-04-13T07:04:01Z",
-      "containerStatuses": [
-        {
-          "name": "redis",
-          "state": {
-            "running": {
-              "startedAt": "2020-04-13T07:04:03Z"
-            }
-          },
-          "lastState": {},
-          "ready": true,
-          "restartCount": 0,
-          "image": "192.168.50.28:5000/redis:latest",
-          "imageID": "docker-pullable://192.168.50.28:5000/redis@sha256:ee1d00c5250b5a886b09be2d5f9506add35dfb557f1ef37a7e4b8f0138f32956",
-          "containerID": "docker://6dc526da53715edc6fdbacec3609e26f3972b35c036993f4bac53c62c18face4",
-          "started": true
-        }
-      ],
-      "qosClass": "Burstable"
-    }
-  }
+    ],
+    "cost": 1,
+    "endtime": "2020-05-08 15:25:55",
+    "errcode": "",
+    "id": "60",
+    "lastquerytime": "2020-05-08 15:25:54",
+    "matchnum": 173,
+    "oncelimit": 3000,
+    "opesip": "172.16.11.131",
+    "opeuser": "yndk",
+    "processinfo": "<span style='font-size:14px;'>查询成功，找到173条记录 <\/span>",
+    "qstate": 2,
+    "querysql": "select f.accessid,60,p.sensorip from fts_access_flex f left join wdd_apt_platform p on f.poid=p.poid where query=' (cmb_1|cmb_2) ;filter=pst,0;minid=2005080325540000000;maxid=2005081525549999999;maxquerytime=30000;sort=extended:@id desc;offset=0;limit=600;maxmatches=600;cutoff=3000000;mode=extended'",
+    "sqltimeouts": 60,
+    "starttime": "2020-05-08 15:25:54",
+    "twolimit": 600
+  },
+  "code": 0,
+  "desc": "update success"
 }
