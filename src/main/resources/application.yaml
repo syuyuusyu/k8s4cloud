@@ -9,20 +9,22 @@ spring:
 
 logging:
   level:
-    ind.syu: debug
+    ind.syu: info
     io.kubernetes: info
     org:
       springframework: info
     javax:
       net:
         ssl: info
+    okhttp3: debug
 
 server:
   port: 8002
 
 
 self:
-  registryUrl: http://10.10.50.101:5000
+  registryUrl: http://10.10.25.1:5001
+  deleteImgUrl: http://10.10.25.1:1200
   #registryUrl: http://192.168.50.28:5000
   #registryUrl: http://127.0.0.1:5000
 

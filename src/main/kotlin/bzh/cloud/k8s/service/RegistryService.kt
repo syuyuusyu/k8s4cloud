@@ -48,14 +48,12 @@ class RegistryService(
     @Value("\${self.tempFileDir}")
     lateinit var tempFileDir: String
 
+    @Value("\${self.registryUrl}")
+    lateinit var registryUrl: String
     companion object {
         private val log: Logger = LoggerFactory.getLogger(RegistryService::class.java)
     }
 
-    @Scheduled(fixedDelay = 1000 )
-    fun heartbeat(){
-        log.info("sdsdsd")
-    }
 
     fun createClient(url: String): DefaultApi {
         return DefaultApi().apply {

@@ -2,17 +2,16 @@ package bzh.cloud.k8s
 
 
 import bzh.cloud.k8s.config.KubeProperties
-import bzh.cloud.k8s.expansion.ManifestJson
-import bzh.cloud.k8s.expansion.metricsNode
-import bzh.cloud.k8s.expansion.readFromInputStream
-import bzh.cloud.k8s.expansion.search
+import bzh.cloud.k8s.expansion.*
 import bzh.cloud.k8s.utils.JsonUtil
 import bzh.cloud.k8s.utils.SpringUtil
 import bzh.cloud.k8s.utils.TAR
 import com.fasterxml.jackson.core.type.TypeReference
+import com.google.common.io.ByteStreams
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.PodLogs
 import io.kubernetes.client.custom.Quantity
+import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.Configuration
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.models.*
@@ -23,9 +22,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import org.junit.jupiter.api.Test
-import org.openapitools.client.ApiClient
 import org.openapitools.client.api.DefaultApi
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -33,10 +34,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.web.reactive.function.client.WebClient
-import reactor.core.publisher.UnicastProcessor
 import sha256
 import java.io.File
 import java.io.FileReader
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 
@@ -56,6 +57,9 @@ class RegistryTest {
 
     @Autowired
     lateinit var kubeApi: CoreV1Api
+
+    @Autowired
+    lateinit var apiClient :ApiClient
 
     val image="library/redis"
 
@@ -403,24 +407,38 @@ class RegistryTest {
         println("bbbb")
     }
 
+
+
+
+
     @Test
-    fun test12(){
-        val client = OkHttpClient()
-
-
-        //val body = RequestBody.create()
-
-        val request = Request.Builder()
-                .addHeader("Accept","application/json")
-                .url("https://20.18.6.16/admin/j_spring_security_check").get().build()
-        val call: Call = client.newCall(request)
-        var response:Response = call.execute()
-
-
-
-        val json = response.body()?.string()
-
+    fun test14(){
+        val (client, api) = bzh.cloud.k8s.config.watchClient()
+        val call =      api.listPodForAllNamespacesCall(null, null, null, null, null, null,
+                null, null, java.lang.Boolean.TRUE, null)
+        val response = call.execute()
+        println(1111)
     }
+
+
+    @Test
+    fun kubelog(){
+        val (client, api) = bzh.cloud.k8s.config.watchClient()
+        val logs = PodLogs(client)
+        val pods = api.listNamespacedPod("test2",null,null,null,null,null,null,null,null,false)
+        val pod = api.readNamespacedPod("testpod","test2",null,null,null)
+        //log.info("{}",pod)
+        val input: InputStream = logs.streamNamespacedPodLog(pod)
+       // ByteStreams.copy(input, System.out)
+        while (true){
+            Thread.sleep(1000*2)
+            val buf = ByteArray(4096)
+            val count = input.read(buf)
+            log.info("{}",count)
+        }
+    }
+
+
 
 
 

@@ -261,12 +261,20 @@ class KubeController(
                 null, null, null, 0, false).items
         val nodelist = kubeApi.listNode(null, false, null, null, null,
                 0, null, 0, false)
+        //val a = nodelist.items?.map { it.status?.capacity?.get("cpu")?.number }
+        //log.info("a:{}",a?.size)
         val allcpu = nodelist.items?.map { it.status?.capacity?.get("cpu")?.number }?.reduce { acc, i -> acc?.add(i) }
 
+        val b = nodelist.items?.map { it.status?.capacity?.get("memory")?.number }
+        //log.info("b:{}",b?.size)
         val allmemory = nodelist.items?.map { it.status?.capacity?.get("memory")?.number }?.reduce { acc, i -> acc?.add(i) }
 
+        //val c =    metlist.items?.map { it.usage?.get("memory")?.number }
+        //log.info("c:{}",c?.size)
         val totalusememory = metlist.items?.map { it.usage?.get("memory")?.number }?.reduce { acc, i -> acc?.add(i) }
 
+        //sval d = metlist.items?.map { it.usage?.get("cpu")?.number }
+        //log.info("d:{}",d?.size)
         val totaluseCpu = metlist.items?.map { it.usage?.get("cpu")?.number }?.reduce { acc, i -> acc?.add(i) }
 
         return metlist.items?.map { metricsitem ->

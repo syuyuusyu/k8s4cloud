@@ -287,42 +287,67 @@ fun DefaultApi.pullLayer(name:String, digest:String, authorization:String?, prog
     val path = "${apiClient.basePath}/v2/$name/blobs/$digest"
     log.info("pullLayer {}",path)
 
-    val request = Request.Builder().url(path)
-            .get()
-            .addHeader("Authorization","Bearer $authorization")
-            .build()
-    val call: Call = client.newCall(request)
-    return call.execute()
+//    val request = Request.Builder().url(path)
+//            .get()
+//            .addHeader("Authorization","Bearer $authorization")
+//            .build()
+//    val call: Call = client.newCall(request)
+//    return call.execute()
+    return curl {
+        client { client }
+        request {
+            url(path)
+            head {
+                authorization?.let {
+                    "Authorization" to "Bearer $it"
+                }
+            }
+        }
+    } as Response
 
 }
 
 
 //--------- upload ------------
+//fun DefaultApi.startUpload(name:String):kotlin.Pair<String?,String?>{
+//    val localVarPath = "/v2/$name/blobs/uploads/"
+//    val localVarQueryParams = ArrayList<Pair?>()
+//    val localVarCollectionQueryParams = ArrayList<Pair?>()
+//
+//
+//    val localVarHeaderParams = HashMap<String, String>()
+//    val localVarCookieParams = HashMap<String, String>()
+//    val localVarFormParams = HashMap<String, Any?>()
+//    val localVarAccepts = arrayOf("*/*")
+//    val localVarAccept = apiClient.selectHeaderAccept(localVarAccepts)
+//    if (localVarAccept != null) {
+//        localVarHeaderParams["Accept"] = localVarAccept
+//    }
+//
+//    val localVarContentTypes = arrayOfNulls<String>(0)
+//    val localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes)
+//    localVarHeaderParams["Content-Type"] = localVarContentType
+//    val localVarAuthNames = arrayOf<String>()
+//    val call = apiClient.buildCall(localVarPath, "POST", localVarQueryParams, localVarCollectionQueryParams, null, localVarHeaderParams,
+//            localVarCookieParams, localVarFormParams, localVarAuthNames, null);
+//    val reponse = apiClient.execute<Void>(call)
+//    val list = reponse.headers.get("Location")
+//    val uuid = reponse.headers.get("Docker-Upload-Uuid")
+//    return kotlin.Pair(list?.get(0),uuid?.get(0))
+//}
 fun DefaultApi.startUpload(name:String):kotlin.Pair<String?,String?>{
-    val localVarPath = "/v2/$name/blobs/uploads/"
-    val localVarQueryParams = ArrayList<Pair?>()
-    val localVarCollectionQueryParams = ArrayList<Pair?>()
+    val reponse = curl {
+        client { this@startUpload.apiClient.httpClient }
+        request {
+            method("post")
+            body { json { "a" to "nothing" } }
+            url(this@startUpload.apiClient.basePath+"/v2/$name/blobs/uploads/")
+        }
+    } as Response
 
-
-    val localVarHeaderParams = HashMap<String, String>()
-    val localVarCookieParams = HashMap<String, String>()
-    val localVarFormParams = HashMap<String, Any?>()
-    val localVarAccepts = arrayOf("*/*")
-    val localVarAccept = apiClient.selectHeaderAccept(localVarAccepts)
-    if (localVarAccept != null) {
-        localVarHeaderParams["Accept"] = localVarAccept
-    }
-
-    val localVarContentTypes = arrayOfNulls<String>(0)
-    val localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes)
-    localVarHeaderParams["Content-Type"] = localVarContentType
-    val localVarAuthNames = arrayOf<String>()
-    val call = apiClient.buildCall(localVarPath, "POST", localVarQueryParams, localVarCollectionQueryParams, null, localVarHeaderParams,
-            localVarCookieParams, localVarFormParams, localVarAuthNames, null);
-    val reponse = apiClient.execute<Void>(call)
-    val list = reponse.headers.get("Location")
-    val uuid = reponse.headers.get("Docker-Upload-Uuid")
-    return kotlin.Pair(list?.get(0),uuid?.get(0))
+    val location = reponse.headers().get("Location")
+    val uuid = reponse.headers().get("Docker-Upload-Uuid")
+    return kotlin.Pair(location,uuid)
 }
 
 fun DefaultApi.existingLayers(name:String,digest:String):Boolean{
@@ -373,7 +398,7 @@ fun DefaultApi.search(keyWord:String,page:Int,pageSize:Int):Map<String,Any>{
     val client = OkHttpClient()
     val path = apiClient.basePath
     log.info("${path}/v1/search?q=$keyWord&n=$pageSize&page=$page")
-    var response:Response
+    val response:Response
 
     val request = Request.Builder()
             .addHeader("Accept","application/json")

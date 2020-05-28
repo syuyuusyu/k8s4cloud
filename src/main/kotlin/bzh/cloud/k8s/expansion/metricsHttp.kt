@@ -26,7 +26,6 @@ class LogResponseBody(
     override fun contentType(): MediaType? = responseBody.contentType()
 
     override fun source(): BufferedSource {
-        println(1111)
         if (bufferedSource == null) {
             bufferedSource = source(responseBody.source())?.let { Okio.buffer(it) };
         }
@@ -53,31 +52,41 @@ class LogResponseBody(
     }
 }
 
+//fun io.kubernetes.client.openapi.apis.CoreV1Api.metricsNode(): NodeMetricsList {
+//    val localVarPostBody: Any? = null
+//    val localVarPath = "/apis/metrics.k8s.io/v1beta1/nodes"
+//    val localVarQueryParams = ArrayList<Pair?>()
+//    val localVarCollectionQueryParams = ArrayList<Pair?>()
+//
+//
+//    val localVarHeaderParams = HashMap<String, String>()
+//    val localVarCookieParams = HashMap<String, String>()
+//    val localVarFormParams = HashMap<String, Any?>()
+//    val localVarAccepts = arrayOf("*/*")
+//    val localVarAccept = apiClient.selectHeaderAccept(localVarAccepts)
+//    if (localVarAccept != null) {
+//        localVarHeaderParams["Accept"] = localVarAccept
+//    }
+//
+//    val localVarContentTypes = arrayOfNulls<String>(0)
+//    val localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes)
+//    localVarHeaderParams["Content-Type"] = localVarContentType
+//    val localVarAuthNames = arrayOf("BearerToken")
+//    val call = apiClient.buildCall(localVarPath, "GET", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody,
+//            localVarHeaderParams, localVarCookieParams, localVarFormParams, localVarAuthNames, null);
+//    val localVarReturnType = object : TypeToken<NodeMetricsList?>() {}.type
+//    val apiResponse = apiClient.execute<NodeMetricsList>(call,localVarReturnType)
+//    return  apiResponse.data
+//}
+
 fun io.kubernetes.client.openapi.apis.CoreV1Api.metricsNode(): NodeMetricsList {
-    val localVarPostBody: Any? = null
-    val localVarPath = "/apis/metrics.k8s.io/v1beta1/nodes"
-    val localVarQueryParams = ArrayList<Pair?>()
-    val localVarCollectionQueryParams = ArrayList<Pair?>()
-
-
-    val localVarHeaderParams = HashMap<String, String>()
-    val localVarCookieParams = HashMap<String, String>()
-    val localVarFormParams = HashMap<String, Any?>()
-    val localVarAccepts = arrayOf("*/*")
-    val localVarAccept = apiClient.selectHeaderAccept(localVarAccepts)
-    if (localVarAccept != null) {
-        localVarHeaderParams["Accept"] = localVarAccept
-    }
-
-    val localVarContentTypes = arrayOfNulls<String>(0)
-    val localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes)
-    localVarHeaderParams["Content-Type"] = localVarContentType
-    val localVarAuthNames = arrayOf("BearerToken")
-    val call = apiClient.buildCall(localVarPath, "GET", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody,
-            localVarHeaderParams, localVarCookieParams, localVarFormParams, localVarAuthNames, null);
-    val localVarReturnType = object : TypeToken<NodeMetricsList?>() {}.type
-    val apiResponse = apiClient.execute<NodeMetricsList>(call,localVarReturnType)
-    return  apiResponse.data
+    return  curl {
+        client { apiClient.httpClient }
+        request {
+            url("${apiClient.basePath}/apis/metrics.k8s.io/v1beta1/nodes")
+        }
+        returnType(NodeMetricsList::class.java)
+    } as NodeMetricsList
 }
 
 fun io.kubernetes.client.openapi.apis.CoreV1Api.watchLog( name:String,  namespace:String,  container:String?) {

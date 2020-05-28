@@ -57,7 +57,7 @@ fun beans() = org.springframework.context.support.beans {
     bean<ApiClient>("apiClient") {
         val kubeConfigPath = ref<KubeProperties>().kubeConfigPath
         val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath))).build()
-        Configuration.setDefaultApiClient(client)
+        //Configuration.setDefaultApiClient(client)
         //client.setDebugging(true)
         client
     }

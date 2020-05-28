@@ -2,6 +2,7 @@ package bzh.cloud.k8s.controller
 
 import bzh.cloud.k8s.expansion.*
 import bzh.cloud.k8s.service.RegistryService
+import com.fasterxml.jackson.core.type.TypeReference
 
 import org.apache.commons.lang.RandomStringUtils
 import org.apache.commons.lang.StringUtils
@@ -12,6 +13,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
+import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -48,6 +50,8 @@ class RegistryController(
     lateinit var officalRegistryUrl:String
     @Value("\${self.registryUrl}")
     lateinit var registryUrl:String
+    @Value("\${self.deleteImgUrl}")
+    lateinit var deleteImgUrl:String
 
 
 
@@ -55,11 +59,10 @@ class RegistryController(
         private val log: Logger = LoggerFactory.getLogger(RegistryController::class.java)
     }
 
-    @GetMapping("/test",produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun test():Mono<String>{
-        return Mono.just("aaa").doOnSuccess { log.info("cccc") }.map {
-        log.info("bbb")
-        "bbb"}
+    @GetMapping("/test",produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
+    fun test():Mono<Resource>{
+        val a = FileSystemResource("/Users/syu/scp/4cloud1.3.tar")
+        return Mono.just(a)
     }
 
 
@@ -182,9 +185,13 @@ class RegistryController(
     fun processdetailx(@PathVariable session: String): Flux<ProcessDetail> = registryService.processdetail(session)
 
     @DeleteMapping("/{name}/deleteimg/{tag}")
-    fun delete(@PathVariable name: String, @PathVariable tag: String):Mono<Void>{
-        registryService.delete(name,tag)
-        return Mono.empty()
+    fun delete(@PathVariable name: String, @PathVariable tag: String):Map<String,Any>{
+        return curl {
+            request {
+                url("$deleteImgUrl/$name/deleteimg/$tag")
+            }
+            returnType( object : TypeReference<Map<String, Any>>(){})
+        } as Map<String, Any>
     }
 
 

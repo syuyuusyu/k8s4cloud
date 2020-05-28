@@ -14,6 +14,7 @@
 package io.kubernetes.client.models;
 
 import com.google.gson.annotations.SerializedName;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.util.ArrayList;
@@ -32,6 +33,10 @@ public class NodeMetricsList {
   public static final String SERIALIZED_NAME_API_VERSION = "apiVersion";
   @SerializedName(SERIALIZED_NAME_API_VERSION)
   private String apiVersion;
+
+  public static final String SERIALIZED_NAME_METADATA = "metadata";
+  @SerializedName(SERIALIZED_NAME_METADATA)
+  private V1ObjectMeta metadata;
 
   public static final String SERIALIZED_NAME_ITEMS = "items";
   @SerializedName(SERIALIZED_NAME_ITEMS)
@@ -98,7 +103,15 @@ public class NodeMetricsList {
     return this;
   }
 
-   /**
+  public V1ObjectMeta getMetadata() {
+    return metadata;
+  }
+
+  public void setMetadata(V1ObjectMeta metadata) {
+    this.metadata = metadata;
+  }
+
+  /**
    * Get items
    * @return items
   **/
