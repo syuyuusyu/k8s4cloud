@@ -21,7 +21,6 @@ logging:
 server:
   port: 8002
 
-
 self:
   registryUrl: http://10.10.25.1:5000
   deleteImgUrl: http://10.10.25.1:1200

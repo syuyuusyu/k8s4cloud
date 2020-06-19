@@ -168,14 +168,14 @@ class KubeController(
             val limitMap = mapOf(
                     "cpu" to Quantity(body.limitCpu),
                     "memory" to Quantity(body.limitMemory))
-            val quota = Resourcequota().rawList().items.find { it.metadata?.name == "quota-$ns" }
+            val quota = ResourceQuota().rawList().items.find { it.metadata?.name == "quota-$ns" }
             val limit = LimitRange().rawList().items.find { it.metadata?.name == "range-$ns" }
 
             if (quota == null) {
-                Resourcequota().buildQuota(ns, quotaMap)
+                ResourceQuota().buildQuota(ns, quotaMap)
             } else {
                 quota.spec?.hard = quotaMap
-                Resourcequota().update(quota)
+                ResourceQuota().update(quota)
             }
             val defaultMap = body.defaultCpu?.let {
                 mapOf(
@@ -221,7 +221,7 @@ class KubeController(
                 "cpu" to Quantity("800m"),
                 "memory" to Quantity("500Mi")
         )
-        val quotaList = Resourcequota().rawList()
+        val quotaList = ResourceQuota().rawList()
         val limitrangeList = LimitRange().rawList()
         return nsList.filter {
             if (StringUtils.isEmpty(name)) {
@@ -353,7 +353,7 @@ class KubeController(
     }
 
     @GetMapping("/ResourcequotaAllns")
-    fun resourcequotaAllns(): List<Any> = Resourcequota().listAll()
+    fun resourcequotaAllns(): List<Any> = ResourceQuota().listAll()
 
 
 
@@ -367,7 +367,7 @@ class KubeController(
         "PersistentVolumeClaim" -> PersistentVolumeClaim().list(ns)
         "Deployment" -> Deployment().list(ns)
         "ConfigMap" -> configMapService.list(ns)
-        "Resourcequota" -> Resourcequota().list(ns)
+        "Resourcequota" -> ResourceQuota().list(ns)
         "Event" -> Event().list(ns)
         else -> {
             response.setStatusCode(HttpStatus.NOT_FOUND)
@@ -383,7 +383,7 @@ class KubeController(
         "PersistentVolumeClaim" -> PersistentVolumeClaim().read(ns, name)
         "Deployment" -> Deployment().read(ns, name)
         "ConfigMap" -> configMapService.read(ns, name)
-        "Resourcequota" -> Resourcequota().read(ns, name)
+        "Resourcequota" -> ResourceQuota().read(ns, name)
         else -> {
             response.setStatusCode(HttpStatus.NOT_FOUND)
             Any()
@@ -451,6 +451,12 @@ class KubeController(
     @PutMapping("/ClusterRoleBinding")
     fun updateClusterRoleBinding(@RequestBody body: V1ClusterRoleBinding): Map<String, Any> = update(body) { ClusterRoleBinding().update(it as V1ClusterRoleBinding) }
 
+    @PutMapping("/ResourceQuota")
+    fun updateResourcequota(@RequestBody body: V1ResourceQuota): Map<String, Any> = update(body) { ResourceQuota().update(it as V1ResourceQuota) }
+
+    @PutMapping("/LimitRange")
+    fun updateLimitRange(@RequestBody body: V1LimitRange): Map<String, Any> = update(body) { LimitRange().update(it as V1LimitRange) }
+
     @DeleteMapping("/namespace/{ns}/{kind}/{name}")
     fun delete(@PathVariable kind: String, @PathVariable ns: String, @PathVariable name: String): Map<String, Any> = when (kind) {
         "Ingress" -> delete(ns, name, Ingress()::delete)
@@ -472,6 +478,8 @@ class KubeController(
         "RoleBinding" -> delete(ns,name ,RoleBinding()::delete)
         "ClusterRole" -> delete(ns,name ,ClusterRole()::delete)
         "ClusterRoleBinding" -> delete(ns,name ,ClusterRoleBinding()::delete)
+        "LimitRange" -> delete(ns,name ,LimitRange()::delete)
+        "ResourceQuota" -> delete(ns,name ,ResourceQuota()::delete)
         else -> HashMap()
     }
 
@@ -545,6 +553,12 @@ class KubeController(
 
     @PostMapping("/namespace/{ns}/RoleBinding")
     fun createRoleBinding(@PathVariable ns: String, @RequestBody body: V1RoleBinding): Map<String, Any> = create { RoleBinding().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/ResourceQuota")
+    fun createResourceQuota(@PathVariable ns: String, @RequestBody body: V1ResourceQuota): Map<String, Any> = create { ResourceQuota().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/LimitRange")
+    fun createLimitRange(@PathVariable ns: String, @RequestBody body: V1LimitRange): Map<String, Any> = create { LimitRange().create(ns, body) }
 
     private fun update(body: Any, updatefun: (Any) -> Unit): Map<String, Any> {
         val result = HashMap<String, Any>()
@@ -639,7 +653,7 @@ class KubeController(
         }
     }
 
-    inner class Resourcequota {
+    inner class ResourceQuota {
         fun buildMap(quota: V1ResourceQuota, podNum: Int) = HashMap<String, Any?>().apply {
             this["name"] = quota.metadata?.name
             this["ns"] = quota.metadata?.namespace
@@ -691,6 +705,9 @@ class KubeController(
         fun update(quota: V1ResourceQuota) {
             UpdateClient().replaceNamespacedResourceQuota(quota.metadata?.name, quota.metadata?.namespace, quota, null, null, null)
         }
+        fun delete(ns: String, name: String) {
+            kubeApi.deleteNamespacedResourceQuota(name, ns, "false", null, null, null, null, null)
+        }
     }
 
     inner class LimitRange {
@@ -709,6 +726,10 @@ class KubeController(
         fun update(limit: V1LimitRange) {
             log.info("sdsd:{}", limit)
             UpdateClient().replaceNamespacedLimitRange(limit.metadata?.name, limit.metadata?.namespace, limit, null, null, null)
+        }
+
+        fun delete(ns: String, name: String) {
+            kubeApi.deleteNamespacedLimitRange(name, ns, "false", null, null, null, null, null)
         }
 
         fun buildRange(ns: String, limit: Map<String, Quantity>,
@@ -740,14 +761,6 @@ class KubeController(
             return kubeApi.listNamespacedService(ns, "true",
                     null, null, null, null, null, null, 0, false)
                     .items
-                    .map {
-                        val map = HashMap<String, Any?>()
-                        map["name"] = it.metadata?.name
-                        map["ns"] = it.metadata?.namespace
-                        map["labels"] = it.metadata?.labels
-                        map["uid"] = it.metadata?.uid
-                        map
-                    }
         }
 
         fun read(ns: String, name: String): V1Service {
@@ -769,14 +782,6 @@ class KubeController(
             return extensionApi.listNamespacedIngress(ns, "false",
                     null, null, null, null, null, null, 0, false)
                     .items
-                    .map {
-                        val map = HashMap<String, Any?>()
-                        map["name"] = it.metadata?.name
-                        map["ns"] = it.metadata?.namespace
-                        map["labels"] = it.metadata?.labels
-                        map["uid"] = it.metadata?.uid
-                        map
-                    }
 
         }
 
@@ -809,14 +814,6 @@ class KubeController(
             return kubeApi.listPersistentVolume("true",
                     null, null, "", null, null, null, 0, false)
                     .items
-//                    .map {
-//                        var map = HashMap<String, Any?>()
-//                        map["name"] = it.metadata?.name
-//                        map["ns"] = it.metadata?.namespace
-//                        map["labels"] = it.metadata?.labels
-//                        map["uid"] = it.metadata?.uid
-//                        map
-//                    }
         }
 
         fun read(name: String): V1PersistentVolume {
