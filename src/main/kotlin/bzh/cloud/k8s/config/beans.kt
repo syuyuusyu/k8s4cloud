@@ -15,7 +15,11 @@ import okhttp3.OkHttpClient
 import org.openapitools.client.api.DefaultApi
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.support.BeanDefinitionDsl
+import org.springframework.core.io.ClassPathResource
 import org.springframework.web.reactive.HandlerMapping
+import org.springframework.web.reactive.function.server.RouterFunction
+import org.springframework.web.reactive.function.server.RouterFunctions
+import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.server.WebSocketService
@@ -90,7 +94,7 @@ fun beans() = org.springframework.context.support.beans {
     }
 
     bean<Executor>("threadPool") {
-        Executors.newFixedThreadPool(20) { r ->
+        Executors.newFixedThreadPool(50) { r ->
             val t = Thread(r)
             t.isDaemon = true
             t
@@ -150,6 +154,14 @@ fun beans() = org.springframework.context.support.beans {
         }
     }
 
+
+    bean<RouterFunction<ServerResponse>>(){
+        RouterFunctions.resources("/k8s16api.json", ClassPathResource("static/k8s1.16.openapi.json"))
+    }
+
+    bean<RouterFunction<ServerResponse>>(){
+        RouterFunctions.resources("/k8s17api.json", ClassPathResource("static/k8sv1.17.0.openapi.json"))
+    }
 
 
 

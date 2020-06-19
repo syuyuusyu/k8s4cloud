@@ -1,10 +1,7 @@
 package bzh.cloud.k8s.service
 
 import com.google.gson.reflect.TypeToken
-import io.kubernetes.client.openapi.models.V1Pod
-import io.kubernetes.client.openapi.models.V1PodBuilder
-import io.kubernetes.client.openapi.models.V1ResourceQuota
-import io.kubernetes.client.openapi.models.V1ResourceQuotaBuilder
+import io.kubernetes.client.openapi.models.*
 import io.kubernetes.client.util.Watch
 import kotlinx.coroutines.*
 import org.slf4j.Logger
@@ -139,7 +136,10 @@ class WatchService(
     private fun addTocachePod(pod: V1Pod) {
         if (pod.metadata?.deletionTimestamp != null) {
             val deleted = cachePod.find { it.metadata?.uid == pod.metadata?.uid }
-            deleted?.let { cachePod.remove(it) }
+            deleted?.let {
+                log.info("delete pod {}",it.metadata?.name)
+                cachePod.remove(it)
+            }
             return
         }
         cachePod.find { it.metadata?.uid == pod.metadata?.uid }?.let { cachePod.remove(it) }
@@ -204,13 +204,15 @@ class WatchService(
     }
 
     private fun addTocacheQuota(quota: V1ResourceQuota) {
-        if (quota.metadata?.deletionTimestamp != null) {
+        quota.metadata?.deletionTimestamp?.let {time->
             val deleted = cacheQuota.find { it.metadata?.uid == quota.metadata?.uid }
             deleted?.let { cacheQuota.remove(it) }
             return
         }
+
         cacheQuota.find { it.metadata?.uid == quota.metadata?.uid }?.let { cacheQuota.remove(it) }
         cacheQuota.add(quota)
     }
 
 }
+

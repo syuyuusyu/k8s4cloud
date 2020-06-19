@@ -23,7 +23,7 @@ server:
 
 
 self:
-  registryUrl: http://10.10.25.1:5001
+  registryUrl: http://10.10.25.1:5000
   deleteImgUrl: http://10.10.25.1:1200
   #registryUrl: http://192.168.50.28:5000
   #registryUrl: http://127.0.0.1:5000
@@ -52,4 +52,6 @@ self:
     - ^/v2/kube
     - ^/pod-terminal
     - ^/registry
+    - ^/k8s16api.json
+    - ^/k8s17api.json
 

@@ -1,9 +1,17 @@
 package bzh.cloud.k8s
 
 import bzh.cloud.k8s.expansion.*
+import com.fasterxml.jackson.core.type.TypeReference
+import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.apis.CoreV1Api
+import io.kubernetes.client.openapi.models.V1ReplicationController
+import io.kubernetes.client.openapi.models.V1ReplicationControllerList
+import io.kubernetes.client.openapi.models.V1ResourceQuota
+import io.kubernetes.client.util.Watch
 import okhttp3.*
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.jupiter.api.Test
 import org.openapitools.client.api.DefaultApi
 import org.openapitools.client.model.Tags
@@ -75,7 +83,7 @@ class CurlTest {
         val a = curl {
             client { client.httpClient }
             request {
-                url("${client.basePath}/api/v1/pods")
+                url("${client.basePath}/api/v1/replicationcontrollers")
                 params {
                     "watch" to "true"
                 }
@@ -91,8 +99,9 @@ class CurlTest {
         println(a)
         println(a.javaClass)
 
-        Thread.sleep(1000 * 200)
+        Thread.sleep(1000 * 100)
         a.close()
+        Thread.sleep(1000*10)
     }
 
     @Test
@@ -240,6 +249,77 @@ class CurlTest {
         val finaldelete = deletedigest subtract otherManifest
         println(finaldelete)
 
+    }
+
+    @Test
+    fun replicationcontrollers(){
+        val list = curl{
+            client { apiClient.httpClient }
+            request{
+                url("${apiClient.basePath}/api/v1/replicationcontrollers")
+            }
+            returnType(V1ReplicationControllerList::class.java)
+        } as V1ReplicationControllerList
+        println(list.items.size)
+    }
+
+
+    @Test
+    fun inseruser(){
+        val user = """
+[
+            { 'userName': 'ljszrzyhghj_liujisheng', 'name': '刘继生', 'phone': '13988889930', 'password': '123456', 'systemCode': 'S11' },
+        ]
+        """.trimIndent()
+
+        val json = JSONArray(user)
+        for (x in 0..json.length()-1){
+            //println(json[x])
+            val u = json[x] as JSONObject
+            val reult = curl {
+                request {
+                    url("http://127.0.0.1:7001/userRegister/saveForSystem")
+                    method("post")
+                    body{u }
+                }
+            } as Response
+            println(reult.code())
+        }
+
+    }
+
+    @Test
+    fun sdsd(){
+        val (client, api) = bzh.cloud.k8s.config.watchClient()
+        val watch = Watch.createWatch<V1ReplicationController>(
+                client,
+                api.listReplicationControllerForAllNamespacesCall(null,null,null,null,null,null,null,null,true,null),
+                object : TypeToken<Watch.Response<V1ReplicationController>>() {}.type)
+        watch.forEach {
+            log.info("{}",it.`object`.metadata?.name)
+        }
+    }
+
+    @Test
+    fun clusterrolebindings(){
+        val (client, api) = bzh.cloud.k8s.config.watchClient()
+        val list = curl{
+            client { client.httpClient }
+            request{
+                url("${client.basePath}/apis/rbac.authorization.k8s.io/v1/clusterroles")
+                params {
+                    "watch" to true
+                }
+            }
+            event {
+                onWacth { line->
+                    log.info(line)
+                }
+            }
+
+        } as CurlEvent
+
+        Thread.sleep(1000*5)
     }
 }
 

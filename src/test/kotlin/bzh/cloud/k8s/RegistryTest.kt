@@ -26,6 +26,7 @@ import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.json.JSONObject
 import org.junit.jupiter.api.Test
 import org.openapitools.client.api.DefaultApi
 import org.slf4j.Logger
@@ -425,18 +426,23 @@ class RegistryTest {
     fun kubelog(){
         val (client, api) = bzh.cloud.k8s.config.watchClient()
         val logs = PodLogs(client)
-        val pods = api.listNamespacedPod("test2",null,null,null,null,null,null,null,null,false)
+        //val pods = api.listNamespacedPod("test2",null,null,null,null,null,null,null,null,false)
         val pod = api.readNamespacedPod("testpod","test2",null,null,null)
         //log.info("{}",pod)
-        val input: InputStream = logs.streamNamespacedPodLog(pod)
-       // ByteStreams.copy(input, System.out)
-        while (true){
-            Thread.sleep(1000*2)
-            val buf = ByteArray(4096)
-            val count = input.read(buf)
-            log.info("{}",count)
-        }
+
+        val ss = JsonUtil.beanToJson(pod)
+        println(ss)
+
     }
+
+
+
+    @Test
+    fun test15(){
+        V1HorizontalPodAutoscaler()
+    }
+
+
 
 
 

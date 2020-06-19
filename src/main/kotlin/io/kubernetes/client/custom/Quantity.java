@@ -1,5 +1,6 @@
 package io.kubernetes.client.custom;
 
+import ch.qos.logback.core.net.SyslogOutputStream;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;

@@ -75,6 +75,29 @@ class RegistryController(
         return registryService.search(queryUrl,keyword,page,pagesize)
     }
 
+    @GetMapping("/images")
+    fun images():List<String>{
+        val list = ArrayList<String>()
+        val catalog = curl {
+            request {
+                url("${registryUrl}/v2/_catalog")
+            }
+            returnType(Catalog::class.java)
+        } as Catalog
+        catalog.repositories?.forEach { name->
+            val tag = curl {
+                request {
+                    url("${registryUrl}/v2/${name}/tags/list")
+                }
+                returnType(Tags::class.java)
+            } as Tags
+            tag.tags?.forEach {
+                list.add("$name:$it")
+            }
+        }
+        return list
+    }
+
     @GetMapping("/catalog")
     fun catalog():Catalog{
         return localRegistryApi.catalogGet(null)

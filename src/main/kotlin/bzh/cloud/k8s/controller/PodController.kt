@@ -113,7 +113,6 @@ class PodController(
                         if(cname != "undefined"){
                             "container" to cname
                         }
-
                     }
                 }
                 event {
@@ -126,7 +125,6 @@ class PodController(
                         log.info("{}",logstr.length)
                         //println("-1"+logstr+"2-")
                         sink.next(logstr)
-
                     }
                 }
             } as CurlEvent
@@ -134,76 +132,10 @@ class PodController(
         }
     }
 
-    //@GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-    fun log3(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
-
-        val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
-                Int.MAX_VALUE, null, false, Int.MAX_VALUE, 100, false)
-
-
-        return Flux.create { sink->
-            sink.next(firstlog)
-        }
-    }
-
-    //@GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-    fun log2(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> = runBlocking{
-        val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
-                Int.MAX_VALUE, null, false, Int.MAX_VALUE, 100, false)
-
-        val (_, api) = watchClient()
-
-        val call1 = api.readNamespacedPodLogCall(pname, ns, if (cname == "undefined") null else cname,
-                true, null, null, false, 2, 10, false, null)
-
-
-        val response = call1.execute()
-        val input = response.body()?.byteStream()!!
-        //var gono = true
-
-
-        var job:Job? = null
-        Flux.create<String> { sink ->
-            sink.next(if (StringUtils.isEmpty(firstlog)) "" else firstlog)
-            job = launch {
-                while (isActive) {
-
-                    launch {
-                        try {
-                            log.info("watch log repeat")
-                            delay(1000)
-                            val count = input.available()
-                            log.info("watch log {}", count)
-                            val byteArray = ByteArray(count)
-                            input.read(byteArray)
-                            sink.next(String(byteArray))
-                        } catch (e: Exception) {
-                            log.info("watch log Exception")
-                            //e.printStackTrace()
-                        }
-                    }
-
-                }
-            }
-
-        }.doFinally {
-            log.info("/watch/log complete")
-
-            input.close()
-            response.close()
-
-        }
-
-
-    }
-
     @GetMapping("/namespace/{ns}/Pod/{podName}")
     fun podJson(@PathVariable ns: String, @PathVariable podName: String): V1Pod {
         val pod = kubeApi.readNamespacedPod(podName, ns, "true", false, false)
-        pod.metadata?.creationTimestamp = null
-        pod.status = null
         return pod;
-
     }
 
     @DeleteMapping("/namespace/{ns}/Pod/{podName}")

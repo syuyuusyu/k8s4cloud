@@ -1,6 +1,7 @@
 package bzh.cloud.k8s.expansion
 
 import bzh.cloud.k8s.utils.JsonUtil
+import bzh.cloud.k8s.utils.SpringUtil
 import com.fasterxml.jackson.core.type.TypeReference
 import kotlinx.coroutines.*
 import okhttp3.*
@@ -13,6 +14,7 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.net.SocketTimeoutException
+import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -158,9 +160,9 @@ class RequestEntity{
         }
 
     fun head(init: RequestMap.() -> Unit) {
-        val head = RequestMap()
-        head.init()
-        this.head = head
+        head = RequestMap()
+        head!!.init()
+
     }
     fun url(url:String) {
         urlstr=url
@@ -169,9 +171,8 @@ class RequestEntity{
         this.method = method
     }
     fun params(init: RequestMap.() -> Unit) {
-        val params = RequestMap()
-        params.init()
-        this.params = params
+        params = RequestMap()
+        params!!.init()
     }
     fun body(build:()->Any) {
         val result = build()
@@ -214,17 +215,15 @@ class CurlEntity{
         this.client = buildClient()
     }
     fun request(buildRequest:RequestEntity.() -> Unit){
-        val en = RequestEntity()
-        en.buildRequest()
-        this.requestEntity = en
-        request = en.request
+        requestEntity = RequestEntity()
+        requestEntity.buildRequest()
+        request = requestEntity.request
     }
     fun returnType(type:Any){
         this.returnType =  type
     }
     fun event(eventFun:CurlEvent.()->Unit){
         this.curlEvent =  CurlEvent(this@CurlEntity,eventFun)
-
     }
 }
 
@@ -239,7 +238,8 @@ class CurlEvent(): CoroutineScope by CoroutineScope(Dispatchers.Default) {
         this.eventFun = init
     }
     var code = ProcessCode.beforeCall
-
+    var watchProcessing = true
+    var threadPool: Executor?=null
     lateinit var response: Response
     lateinit var request: Request
     var inputStream : InputStream? = null
@@ -247,33 +247,56 @@ class CurlEvent(): CoroutineScope by CoroutineScope(Dispatchers.Default) {
     var watchRunning :AtomicBoolean = AtomicBoolean(false)
     var readStreamRunning = AtomicBoolean(false)
     fun close() {
+        watchProcessing = false
         watchRunning.set(false)
+
         readStreamRunning.set(false)
         source?.close()
+
         inputStream?.close()
         response.close()
+
     }
-    fun  onWacth(watchFun:CurlEvent.(readline:String)->Unit)  {
+    fun threadPool(pol:Executor){
+        this.threadPool = pol
+    }
+
+    fun threadPool(threadFun:()->Executor){
+        this.threadPool = threadFun()
+    }
+    fun  onWacth(watchFun:(readline:String)->Unit)  {
         if(code != ProcessCode.faterCall ){
             return
         }
         source = response.body()?.source()
         watchRunning.set(true)
-        launch {
+        launch(threadPool?.asCoroutineDispatcher() ?: Dispatchers.Default) {
             while (watchRunning.get()){
                 response.body()?.source()
-                val line = source?.readUtf8Line()
-                if (line != null) {
-                    watchFun(line)
+                try {
+                    val line = source?.readUtf8Line()
+                    if (line != null) {
+                        watchFun(line)
+                    }
+                    val flag = source?.exhausted()!!
+                    if(flag){
+                        println("source exhausted")
+                        close()
+                    }
+
+                }catch (e:Exception){
+                    e.printStackTrace()
+                    close()
                 }
             }
         }
+
     }
-    fun readStream(inputfun:CurlEvent.(input:ByteArray)->Unit){
+    fun readStream(inputfun:(input:ByteArray)->Unit){
         if(code != ProcessCode.faterCall ) return
         inputStream = response.body()?.byteStream()!!
         readStreamRunning.set(true)
-        launch {
+        launch(threadPool?.asCoroutineDispatcher() ?: Dispatchers.Default) {
             while (readStreamRunning.get()){
                 val buf = ByteArray(4096)
                 val count = inputStream?.read(buf)!!

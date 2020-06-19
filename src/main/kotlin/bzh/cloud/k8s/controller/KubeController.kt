@@ -4,9 +4,12 @@ package bzh.cloud.k8s.controller
 import bzh.cloud.k8s.config.CmContext
 
 import bzh.cloud.k8s.config.UpdateClient
+import bzh.cloud.k8s.expansion.curl
 import bzh.cloud.k8s.expansion.metricsNode
 import bzh.cloud.k8s.service.ConfigMapService
+import bzh.cloud.k8s.service.WatchAllService
 import bzh.cloud.k8s.service.WatchService
+import com.fasterxml.jackson.core.type.TypeReference
 import io.kubernetes.client.custom.V1Patch
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
@@ -18,11 +21,13 @@ import org.springframework.web.bind.annotation.*
 import java.io.FileReader
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kubernetes.client.custom.Quantity
+import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.ApiException
-import io.kubernetes.client.openapi.apis.CoreV1Api
-import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api
+import io.kubernetes.client.openapi.apis.*
 import io.kubernetes.client.openapi.models.*
 import kotlinx.coroutines.*
+import okhttp3.Response
+import org.json.JSONObject
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpResponse
@@ -49,10 +54,12 @@ class NsWithQuota{
 @RequestMapping("/kube")
 class KubeController(
         val kubeApi: CoreV1Api,
+        val apiClient : ApiClient,
         val extensionApi: ExtensionsV1beta1Api,
         val configMapService: ConfigMapService,
         val threadPool : Executor,
-        val watchService: WatchService
+        val watchService: WatchService,
+        val watchAllService: WatchAllService
 ): CoroutineScope by CoroutineScope(Dispatchers.Default) {
     @Value("\${self.kubeConfigPath}")
     lateinit var kubeConfigPath: String
@@ -83,6 +90,42 @@ class KubeController(
         if (!NameSpace().nameExists(ns)) {
             val nsobj = V1NamespaceBuilder().withNewMetadata().withName(ns).endMetadata().build()
             kubeApi.createNamespace(nsobj, "false", null, null)
+        }
+    }
+
+    @GetMapping("/api")
+    fun  api() :String {
+        //apiClient.setDebugging(false)
+        val response =  curl {
+            client { apiClient.httpClient }
+            request {
+               url("${apiClient.basePath}/openapi/v2")
+            }
+
+        }as Response
+        return response.body()?.string()!!
+    }
+
+    @GetMapping("/api/definitions")
+    fun  definitions() :String {
+        //apiClient.setDebugging(false)
+        val response =  curl {
+            client { apiClient.httpClient }
+            request {
+                url("${apiClient.basePath}/openapi/v2")
+            }
+
+        }as Response
+        val str =  response.body()?.string()!!
+        val json = JSONObject(str)
+        return json.getJSONObject("definitions").toString(0)
+    }
+
+    @GetMapping("/watchAll", produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
+    fun watchAll(): Flux<String>  {
+
+        return Flux.create<String> (watchAllService::addSink).doFinally{
+            log.info("doFinally watchAll")
         }
     }
 
@@ -188,26 +231,26 @@ class KubeController(
             }
         }.map { ns ->
             val quota = quotaList.items.find { it.metadata?.namespace == ns }
-                    ?: Resourcequota().buildQuota(ns, quotaMap)
+                    //?: Resourcequota().buildQuota(ns, quotaMap)
             val limitRange = limitrangeList.items.find { it.metadata?.namespace == ns }
-                    ?: LimitRange().buildRange(ns, limitMap)
+                    //?: LimitRange().buildRange(ns, limitMap)
             NsWithQuota().apply {
                 try {
                     this.name = ns
-                    quotaCpu = quota.spec?.hard?.get("cpu")?.toSuffixedString()!!
-                    quotaMemory = quota.spec?.hard?.get("memory")?.toSuffixedString()!!
-                    quotaPods = quota.spec?.hard?.get("pods")?.toSuffixedString()!!.toInt()
-                    limitCpu = limitRange.spec?.limits?.get(0)?.max?.get("cpu")?.toSuffixedString()!!
-                    limitMemory = limitRange.spec?.limits?.get(0)?.max?.get("memory")?.toSuffixedString()!!
+                    quotaCpu = quota?.spec?.hard?.get("cpu")?.toSuffixedString()!!
+                    quotaMemory = quota?.spec?.hard?.get("memory")?.toSuffixedString()!!
+                    quotaPods = quota?.spec?.hard?.get("pods")?.toSuffixedString()!!.toInt()
+                    limitCpu = limitRange?.spec?.limits?.get(0)?.max?.get("cpu")?.toSuffixedString()!!
+                    limitMemory = limitRange?.spec?.limits?.get(0)?.max?.get("memory")?.toSuffixedString()!!
 
-                    defaultCpu = limitRange.spec?.limits?.get(0)?.default?.get("cpu")?.toSuffixedString()!!
-                    defaultMemory = limitRange.spec?.limits?.get(0)?.default?.get("memory")?.toSuffixedString()!!
+                    defaultCpu = limitRange?.spec?.limits?.get(0)?.default?.get("cpu")?.toSuffixedString()!!
+                    defaultMemory = limitRange?.spec?.limits?.get(0)?.default?.get("memory")?.toSuffixedString()!!
 
-                    defaultRequestCpu = limitRange.spec?.limits?.get(0)?.defaultRequest?.get("cpu")?.toSuffixedString()!!
-                    defaultRequestMemory = limitRange.spec?.limits?.get(0)?.defaultRequest?.get("memory")?.toSuffixedString()!!
+                    defaultRequestCpu = limitRange?.spec?.limits?.get(0)?.defaultRequest?.get("cpu")?.toSuffixedString()!!
+                    defaultRequestMemory = limitRange?.spec?.limits?.get(0)?.defaultRequest?.get("memory")?.toSuffixedString()!!
 
-                    minCpu = limitRange.spec?.limits?.get(0)?.min?.get("cpu")?.toSuffixedString()!!
-                    minMemory = limitRange.spec?.limits?.get(0)?.min?.get("memory")?.toSuffixedString()!!
+                    minCpu = limitRange?.spec?.limits?.get(0)?.min?.get("cpu")?.toSuffixedString()!!
+                    minMemory = limitRange?.spec?.limits?.get(0)?.min?.get("memory")?.toSuffixedString()!!
                 } catch (e: java.lang.Exception) {
                     log.info("{},{}", quota, limitRange)
                 }
@@ -351,11 +394,11 @@ class KubeController(
     @PutMapping("/PersistentVolume")
     fun updatePersistentVolume(@RequestBody body: V1PersistentVolume): Map<String, Any> = update(body) { PersistentVolume().update(it as V1PersistentVolume) }
 
-    @PutMapping("/Ingress/read")
+    @PutMapping("/Ingress")
     fun updateIngress(@RequestBody body: ExtensionsV1beta1Ingress): Map<String, Any> = update(body) { Ingress().update(it as ExtensionsV1beta1Ingress) }
 
     @PutMapping("/Deployment")
-    fun updateDeployment(@RequestBody body: ExtensionsV1beta1Deployment): Map<String, Any> = update(body) { Deployment().update(it as ExtensionsV1beta1Deployment) }
+    fun updateDeployment(@RequestBody body: V1Deployment): Map<String, Any> = update(body) { Deployment().update(it as V1Deployment) }
 
     @PutMapping("/Service")
     fun updateService(@RequestBody body: V1Service): Map<String, Any>? = update(body) { Service().update(it as V1Service) }
@@ -366,6 +409,48 @@ class KubeController(
     @PutMapping("/ConfigMap")
     fun updateConfigmap(@RequestBody body: V1ConfigMap): Map<String, Any> = update(body) { configMapService.update(it as V1ConfigMap) }
 
+    @PutMapping("/ReplicaSet")
+    fun updateV1beta1ReplicaSet(@RequestBody body: V1ReplicaSet): Map<String, Any> = update(body) { ReplicaSet().update(it as V1ReplicaSet) }
+
+
+    @PutMapping("/DaemonSet")
+    fun updateDaemonSet(@RequestBody body: V1DaemonSet): Map<String, Any> = update(body) { DaemonSet().update(it as V1DaemonSet) }
+
+    @PutMapping("/ReplicationController")
+    fun updateReplicationController(@RequestBody body: V1ReplicationController): Map<String, Any> = update(body) { ReplicationController().update(it as V1ReplicationController) }
+
+
+    @PutMapping("/StatefulSet")
+    fun updateStatefulSet(@RequestBody body: V1StatefulSet): Map<String, Any> = update(body) { StatefulSet().update(it as V1StatefulSet) }
+
+
+    @PutMapping("/Job")
+    fun updateJob(@RequestBody body: V1Job): Map<String, Any> = update(body) { Job().update(it as V1Job) }
+
+    @PutMapping("/CronJob")
+    fun updateCronJob(@RequestBody body: V1beta1CronJob): Map<String, Any> = update(body) { CronJob().update(it as V1beta1CronJob) }
+
+    @PutMapping("/Secret")
+    fun updateSecret(@RequestBody body: V1Secret): Map<String, Any> = update(body) { Secret().update(it as V1Secret) }
+
+    @PutMapping("/ServiceAccount")
+    fun updateServiceAccount(@RequestBody body: V1ServiceAccount): Map<String, Any> = update(body) { ServiceAccount().update(it as V1ServiceAccount) }
+
+    @PutMapping("/HorizontalPodAutoscaler")
+    fun updateHorizontalPodAutoscaler(@RequestBody body: V1HorizontalPodAutoscaler): Map<String, Any> = update(body) { HorizontalPodAutoscaler().update(it as V1HorizontalPodAutoscaler) }
+
+    @PutMapping("/Role")
+    fun updateRole(@RequestBody body: V1Role): Map<String, Any> = update(body) { Role().update(it as V1Role) }
+
+    @PutMapping("/ClusterRole")
+    fun updateClusterRole(@RequestBody body: V1ClusterRole): Map<String, Any> = update(body) { ClusterRole().update(it as V1ClusterRole) }
+
+    @PutMapping("/RoleBinding")
+    fun updateRoleBinding(@RequestBody body: V1RoleBinding): Map<String, Any> = update(body) { RoleBinding().update(it as V1RoleBinding) }
+
+    @PutMapping("/ClusterRoleBinding")
+    fun updateClusterRoleBinding(@RequestBody body: V1ClusterRoleBinding): Map<String, Any> = update(body) { ClusterRoleBinding().update(it as V1ClusterRoleBinding) }
+
     @DeleteMapping("/namespace/{ns}/{kind}/{name}")
     fun delete(@PathVariable kind: String, @PathVariable ns: String, @PathVariable name: String): Map<String, Any> = when (kind) {
         "Ingress" -> delete(ns, name, Ingress()::delete)
@@ -374,9 +459,27 @@ class KubeController(
         "PersistentVolumeClaim" -> delete(ns, name, PersistentVolumeClaim()::delete)
         "Deployment" -> delete(ns, name, Deployment()::delete)
         "ConfigMap" -> delete(ns, name, configMapService::delete)
+        "ReplicaSet" -> delete(ns,name ,ReplicaSet()::delete)
+        "DaemonSet" -> delete(ns,name ,DaemonSet()::delete)
+        "ReplicationController" -> delete(ns,name ,ReplicationController()::delete)
+        "StatefulSet" -> delete(ns,name ,StatefulSet()::delete)
+        "Job" -> delete(ns,name ,Job()::delete)
+        "CronJob" -> delete(ns,name ,CronJob()::delete)
+        "Secret" -> delete(ns,name ,Secret()::delete)
+        "ServiceAccount" -> delete(ns,name ,ServiceAccount()::delete)
+        "V1HorizontalPodAutoscaler" -> delete(ns,name ,HorizontalPodAutoscaler()::delete)
+        "Role" -> delete(ns,name ,Role()::delete)
+        "RoleBinding" -> delete(ns,name ,RoleBinding()::delete)
+        "ClusterRole" -> delete(ns,name ,ClusterRole()::delete)
+        "ClusterRoleBinding" -> delete(ns,name ,ClusterRoleBinding()::delete)
         else -> HashMap()
     }
 
+    //@PostMapping("/namespace/{ns}/{kind}")
+    fun post(@PathVariable kind: String, @PathVariable ns: String,@RequestBody body: Any):Map<String, Any> = when (kind){
+        "PersistentVolume" -> create { PersistentVolume().create(body as V1PersistentVolume) }
+        else -> HashMap()
+    }
 
     @PostMapping("/namespace/{ns}/PersistentVolume")
     fun createPersistentVolume(@PathVariable ns: String, @RequestBody body: V1PersistentVolume): Map<String, Any> = create { PersistentVolume().create(body) }
@@ -385,10 +488,10 @@ class KubeController(
     fun createIngress(@PathVariable ns: String, @RequestBody body: ExtensionsV1beta1Ingress): Map<String, Any> = create { Ingress().create(ns, body) }
 
     @PostMapping("/namespace/{ns}/Deployment")
-    fun createDeployment(@PathVariable ns: String, @RequestBody body: ExtensionsV1beta1Deployment): Map<String, Any> = create { Deployment().create(ns, body) }
+    fun createDeployment(@PathVariable ns: String, @RequestBody body: V1Deployment): Map<String, Any> = create { Deployment().create(ns, body) }
 
     @PostMapping("/namespace/{ns}/Service")
-    fun createService(@PathVariable ns: String, @RequestBody body: V1Service): Map<String, Any>? = create { Service().create(ns, body) }
+    fun createService(@PathVariable ns: String, @RequestBody body: V1Service): Map<String, Any> = create { Service().create(ns, body) }
 
     @PostMapping("/namespace/{ns}/PersistentVolumeClaim")
     fun createPersistentVolumeClaim(@PathVariable ns: String, @RequestBody body: V1PersistentVolumeClaim): Map<String, Any> = create { PersistentVolumeClaim().create(ns, body) }
@@ -404,6 +507,44 @@ class KubeController(
     @PutMapping("/addConfigMapData")
     fun addConfigMapData(@RequestBody context: CmContext): Map<String, Any> = create { configMapService.update(context) }
 
+    @PostMapping("/namespace/{ns}/ReplicaSet")
+    fun createReplicaSet(@PathVariable ns: String, @RequestBody body: V1ReplicaSet): Map<String, Any> = create { ReplicaSet().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/DaemonSet")
+    fun createDaemonSet(@PathVariable ns: String, @RequestBody body: V1DaemonSet): Map<String, Any> = create { DaemonSet().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/ReplicationController")
+    fun createReplicationController(@PathVariable ns: String, @RequestBody body: V1ReplicationController): Map<String, Any> = create { ReplicationController().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/StatefulSet")
+    fun createStatefulSet(@PathVariable ns: String, @RequestBody body: V1StatefulSet): Map<String, Any> = create { StatefulSet().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/Job")
+    fun createJob(@PathVariable ns: String, @RequestBody body: V1Job): Map<String, Any> = create { Job().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/CronJob")
+    fun createCronJob(@PathVariable ns: String, @RequestBody body: V1beta1CronJob): Map<String, Any> = create { CronJob().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/Secret")
+    fun createSecret(@PathVariable ns: String, @RequestBody body: V1Secret): Map<String, Any> = create { Secret().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/ServiceAccount")
+    fun createServiceAccount(@PathVariable ns: String, @RequestBody body: V1ServiceAccount): Map<String, Any> = create { ServiceAccount().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/HorizontalPodAutoscaler")
+    fun createHorizontalPodAutoscaler(@PathVariable ns: String, @RequestBody body: V1HorizontalPodAutoscaler): Map<String, Any> = create { HorizontalPodAutoscaler().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/ClusterRoleBinding")
+    fun createClusterRoleBinding(@PathVariable ns: String, @RequestBody body: V1ClusterRoleBinding): Map<String, Any> = create { ClusterRoleBinding().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/ClusterRole")
+    fun createClusterRole(@PathVariable ns: String, @RequestBody body: V1ClusterRole): Map<String, Any> = create { ClusterRole().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/Role")
+    fun createRole(@PathVariable ns: String, @RequestBody body: V1Role): Map<String, Any> = create { Role().create(ns, body) }
+
+    @PostMapping("/namespace/{ns}/RoleBinding")
+    fun createRoleBinding(@PathVariable ns: String, @RequestBody body: V1RoleBinding): Map<String, Any> = create { RoleBinding().create(ns, body) }
 
     private fun update(body: Any, updatefun: (Any) -> Unit): Map<String, Any> {
         val result = HashMap<String, Any>()
@@ -510,6 +651,7 @@ class KubeController(
         }
 
         fun buildQuota(ns: String, hard: Map<String, Quantity>): V1ResourceQuota {
+
             return V1ResourceQuotaBuilder()
                     .withNewMetadata().withName("quota-$ns").endMetadata()
                     .withNewSpec().addToHard(hard).endSpec().build().apply {
@@ -610,7 +752,6 @@ class KubeController(
 
         fun read(ns: String, name: String): V1Service {
             val a = kubeApi.readNamespacedService(name, ns, "false", null, null)
-            a.metadata?.creationTimestamp = null
             return a
         }
 
@@ -641,8 +782,6 @@ class KubeController(
 
         fun read(ns: String, name: String): ExtensionsV1beta1Ingress {
             var a = extensionApi.readNamespacedIngress(name, ns, "true", null, null)
-            a.metadata?.creationTimestamp = null
-            a.status = null
             return a
         }
 
@@ -670,19 +809,18 @@ class KubeController(
             return kubeApi.listPersistentVolume("true",
                     null, null, "", null, null, null, 0, false)
                     .items
-                    .map {
-                        var map = HashMap<String, Any?>()
-                        map["name"] = it.metadata?.name
-                        map["ns"] = it.metadata?.namespace
-                        map["labels"] = it.metadata?.labels
-                        map["uid"] = it.metadata?.uid
-                        map
-                    }
+//                    .map {
+//                        var map = HashMap<String, Any?>()
+//                        map["name"] = it.metadata?.name
+//                        map["ns"] = it.metadata?.namespace
+//                        map["labels"] = it.metadata?.labels
+//                        map["uid"] = it.metadata?.uid
+//                        map
+//                    }
         }
 
         fun read(name: String): V1PersistentVolume {
             val a = kubeApi.readPersistentVolume(name, "ture", null, null)
-            a.metadata?.creationTimestamp = null
             return a
         }
 
@@ -708,22 +846,18 @@ class KubeController(
 
         fun list(ns: String): List<Any> {
             return rawList(ns)
-                    .map {
-                        var map = HashMap<String, Any?>()
-                        map["name"] = it.metadata?.name
-                        map["ns"] = it.metadata?.namespace
-                        map["labels"] = it.metadata?.labels
-                        map["uid"] = it.metadata?.uid
-                        map
-                    }
+//                    .map {
+//                        var map = HashMap<String, Any?>()
+//                        map["name"] = it.metadata?.name
+//                        map["ns"] = it.metadata?.namespace
+//                        map["labels"] = it.metadata?.labels
+//                        map["uid"] = it.metadata?.uid
+//                        map
+//                    }
         }
 
         fun read(ns: String, name: String): V1PersistentVolumeClaim {
             val a = kubeApi.readNamespacedPersistentVolumeClaim(name, ns, "true", null, null)
-            a.metadata?.creationTimestamp = null
-            a.status?.conditions?.forEach {
-                it.lastTransitionTime = null
-            }
             return a
         }
 
@@ -744,48 +878,302 @@ class KubeController(
     }
 
     inner class Deployment {
-        fun rawList(ns: String) = extensionApi.listNamespacedDeployment(ns, "true",
+
+        fun rawList(ns: String) =   AppsV1Api(apiClient).listNamespacedDeployment(ns, null,
                 null, null, null, null, null, null, 0, false)
                 .items
-
-        fun list(ns: String): List<Any> {
+        fun list(ns: String): List<V1Deployment> {
+            ///apis/apps/v1/namespaces/{namespace}/deployments
             return rawList(ns)
-                    .map {
-                        var map = HashMap<String, Any?>()
-                        map["name"] = it.metadata?.name
-                        map["ns"] = it.metadata?.namespace
-                        map["labels"] = it.metadata?.labels
-                        map["uid"] = it.metadata?.uid
-                        map
-                    }
+
+
         }
 
-        fun read(ns: String, name: String): ExtensionsV1beta1Deployment {
-            val a = extensionApi.readNamespacedDeployment(name, ns, "true", null, null)
-            a.metadata?.creationTimestamp = null
-            a.status?.conditions?.forEach {
-                it.lastTransitionTime = null
-                it.lastUpdateTime = null
-            }
+        fun read(ns: String, name: String): V1Deployment {
+            val a =   AppsV1Api(apiClient).readNamespacedDeployment(name, ns, "true", null, null)
             return a
         }
 
-        fun update(deployment: ExtensionsV1beta1Deployment) {
+        fun update(deployment: V1Deployment) {
             val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
                     .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
             client.setDebugging(true)
-            ExtensionsV1beta1Api(client)
+            AppsV1Api(client)
                     .replaceNamespacedDeploymentWithHttpInfo(deployment.metadata?.name, deployment.metadata?.namespace, deployment,
                             "true", null, null)
         }
 
         fun delete(ns: String, name: String) {
-            extensionApi
+            AppsV1Api(apiClient)
                     .deleteNamespacedDeploymentWithHttpInfo(name, ns, "true", null, null, null, null, null)
         }
 
-        fun create(ns: String, deployment: ExtensionsV1beta1Deployment) {
-            extensionApi.createNamespacedDeploymentWithHttpInfo(ns, deployment, "true", null, null)
+        fun create(ns: String, deployment: V1Deployment) {
+            AppsV1Api(apiClient).createNamespacedDeploymentWithHttpInfo(ns, deployment, "true", null, null)
+        }
+    }
+
+    inner class ReplicaSet{
+        fun update(replicaSet:V1ReplicaSet) {
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            //AppsV1Api(client)
+            AppsV1Api(client)
+                    .replaceNamespacedReplicaSetWithHttpInfo(replicaSet.metadata?.name,replicaSet.metadata?.namespace,replicaSet,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            AppsV1Api(apiClient)
+                    .deleteNamespacedReplicaSet(name,ns,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, replicaSet:V1ReplicaSet) {
+            AppsV1Api(apiClient).createNamespacedReplicaSetWithHttpInfo(ns,replicaSet,null,null,null)
+        }
+    }
+
+    inner class DaemonSet{
+        fun update(daemonSet: V1DaemonSet) {
+
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            AppsV1Api(client)
+                    .replaceNamespacedDaemonSetWithHttpInfo(daemonSet.metadata?.name,daemonSet.metadata?.namespace,daemonSet,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            AppsV1Api(apiClient)
+                    .deleteNamespacedDaemonSet(name,ns,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, daemonSet:V1DaemonSet) {
+            AppsV1Api(apiClient).createNamespacedDaemonSet(ns,daemonSet,null,null,null)
+        }
+
+    }
+
+    inner class ReplicationController{
+        fun update(rc: V1ReplicationController) {
+            UpdateClient()
+                    .replaceNamespacedReplicationControllerWithHttpInfo(rc.metadata?.name,rc.metadata?.namespace,rc,null,null,null)
+        }
+
+        fun delete(ns: String, name: String) {
+            kubeApi.deleteNamespacedReplicationControllerWithHttpInfo(name, ns, null, null, null, null, null, null)
+        }
+
+        fun create(ns: String, rc: V1ReplicationController) {
+            kubeApi.createNamespacedReplicationControllerWithHttpInfo(ns, rc, null, null, null)
+        }
+    }
+
+    inner class StatefulSet{
+        fun update(daemonSet: V1StatefulSet) {
+
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            AppsV1Api(client)
+                    .replaceNamespacedStatefulSetWithHttpInfo(daemonSet.metadata?.name,daemonSet.metadata?.namespace,daemonSet,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            AppsV1Api(apiClient)
+                    .deleteNamespacedStatefulSet(name,ns,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, daemonSet:V1StatefulSet) {
+            AppsV1Api(apiClient).createNamespacedStatefulSet(ns,daemonSet,null,null,null)
+        }
+    }
+
+    inner class Job{
+        fun update(job: V1Job) {
+
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            BatchV1Api(client)
+                    .replaceNamespacedJob(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            BatchV1Api(apiClient)
+                    .deleteNamespacedJob(name,ns,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, job: V1Job) {
+            BatchV1Api(apiClient).createNamespacedJob(ns,job,null,null,null)
+        }
+    }
+
+    inner class CronJob{
+        fun update(job: V1beta1CronJob) {
+
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            BatchV1beta1Api(client)
+                    .replaceNamespacedCronJob(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            BatchV1beta1Api(apiClient)
+                    .deleteNamespacedCronJob(name,ns,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, job: V1beta1CronJob) {
+            BatchV1beta1Api(apiClient).createNamespacedCronJob(ns,job,null,null,null)
+        }
+    }
+
+    inner class Secret{
+        fun create(ns: String, sec: V1Secret) {
+            kubeApi.createNamespacedSecret(ns,sec,null,null,null)
+        }
+
+        fun update(rc: V1Secret) {
+            UpdateClient()
+                    .replaceNamespacedSecret(rc.metadata?.name,rc.metadata?.namespace,rc,null,null,null)
+        }
+
+        fun delete(ns: String, name: String) {
+            kubeApi.deleteNamespacedSecret(name, ns, null, null, null, null, null, null)
+        }
+
+    }
+
+    inner class ServiceAccount{
+        fun create(ns: String, sec: V1ServiceAccount) {
+            kubeApi.createNamespacedServiceAccount(ns,sec,null,null,null)
+        }
+
+        fun update(rc: V1ServiceAccount) {
+            UpdateClient()
+                    .replaceNamespacedServiceAccount(rc.metadata?.name,rc.metadata?.namespace,rc,null,null,null)
+        }
+
+        fun delete(ns: String, name: String) {
+            kubeApi.deleteNamespacedServiceAccount(name, ns, null, null, null, null, null, null)
+        }
+    }
+
+    inner class HorizontalPodAutoscaler{
+        fun update(job: V1HorizontalPodAutoscaler) {
+
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            AutoscalingV1Api(client)
+                    .replaceNamespacedHorizontalPodAutoscaler(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            AutoscalingV1Api(apiClient)
+                    .deleteNamespacedHorizontalPodAutoscaler(name,ns,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, job: V1HorizontalPodAutoscaler) {
+            AutoscalingV1Api(apiClient).createNamespacedHorizontalPodAutoscaler(ns,job,null,null,null)
+        }
+
+    }
+
+    inner class Role{
+        fun update(job: V1Role) {
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            RbacAuthorizationV1Api(client)
+                    .replaceNamespacedRole(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            RbacAuthorizationV1Api(apiClient)
+                    .deleteNamespacedRole(name,ns,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, job: V1Role) {
+            RbacAuthorizationV1Api(apiClient).createNamespacedRole(ns,job,null,null,null)
+        }
+    }
+
+    inner class RoleBinding{
+        fun update(job: V1RoleBinding) {
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            RbacAuthorizationV1Api(client)
+                    .replaceNamespacedRoleBinding(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            RbacAuthorizationV1Api(apiClient)
+                    .deleteNamespacedRoleBinding(name,ns,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, job: V1RoleBinding) {
+            RbacAuthorizationV1Api(apiClient).createNamespacedRoleBinding(ns,job,null,null,null)
+        }
+    }
+
+    inner class ClusterRole{
+        fun update(job: V1ClusterRole) {
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            RbacAuthorizationV1Api(client)
+                    .replaceClusterRole(job.metadata?.name,job,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            RbacAuthorizationV1Api(apiClient)
+                    .deleteClusterRole(name,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, job: V1ClusterRole) {
+            RbacAuthorizationV1Api(apiClient).createClusterRole(job,null,null,null)
+        }
+    }
+
+    inner class ClusterRoleBinding{
+        fun update(job: V1ClusterRoleBinding) {
+            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
+                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
+            client.setDebugging(true)
+            RbacAuthorizationV1Api(client)
+                    .replaceClusterRoleBinding(job.metadata?.name,job,null,null,null)
+
+        }
+
+        fun delete(ns: String, name: String) {
+            RbacAuthorizationV1Api(apiClient)
+                    .deleteClusterRoleBinding(name,null,null,null,null,null,null)
+
+        }
+
+        fun create(ns: String, job: V1ClusterRoleBinding) {
+            RbacAuthorizationV1Api(apiClient).createClusterRoleBinding(job,null,null,null)
         }
     }
 
