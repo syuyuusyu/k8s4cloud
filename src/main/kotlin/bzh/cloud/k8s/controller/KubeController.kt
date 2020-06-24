@@ -96,10 +96,11 @@ class KubeController(
     @GetMapping("/api")
     fun  api() :String {
         //apiClient.setDebugging(false)
+        val (client, _) = bzh.cloud.k8s.config.watchClient()
         val response =  curl {
-            client { apiClient.httpClient }
+            client { client.httpClient }
             request {
-               url("${apiClient.basePath}/openapi/v2")
+               url("${client.basePath}/openapi/v2")
             }
 
         }as Response
@@ -109,10 +110,11 @@ class KubeController(
     @GetMapping("/api/definitions")
     fun  definitions() :String {
         //apiClient.setDebugging(false)
+        val (client, _) = bzh.cloud.k8s.config.watchClient()
         val response =  curl {
-            client { apiClient.httpClient }
+            client { client.httpClient }
             request {
-                url("${apiClient.basePath}/openapi/v2")
+                url("${client.basePath}/openapi/v2")
             }
 
         }as Response

@@ -82,10 +82,6 @@ class WatchAllService(
         t
     }
 
-    val kindList = arrayOf("Node", "Pod", "ConfigMap", "Event", "ResourceQuota", "LimitRange", "PersistentVolumeClaim", "PersistentVolume",
-            "ReplicationController", "Secret", "ServiceAccount", "Service", "ControllerRevision", "DaemonSet", "Deployment", "ReplicaSet", "StatefulSet",
-            "CronJob", "Job", "HorizontalPodAutoscaler", "NetworkPolicy", "ClusterRoleBinding", "ClusterRole", "RoleBinding", "Role")
-
     @Scheduled(fixedRate = 1000 * 30)
     fun heartbeat() {
         log.info("heartbeat")
@@ -121,7 +117,7 @@ class WatchAllService(
                 } else {
                     cache.put(uid, json)
                 }
-                //log.info("addCache deleteFlag:{},kind:{},name:{} cache-size:{}", deleteFlag,kind,name,cache.size)
+                log.info("addCache deleteFlag:{},kind:{},name:{} cache-size:{}", deleteFlag,kind,name,cache.size)
             }
         }
 
@@ -150,24 +146,13 @@ class WatchAllService(
                     val name = json.getJSONObject("object").getJSONObject("metadata").getString("name")
                     val kind = json.getJSONObject("object").getString("kind")
                     //log.info("watch {},name:{}",kind,name)
+                    var deleteFlag = false
                     if (type == "DELETED") {
-                        addCache(uid, line, true, name, kind)
-                        dispatcherSink.forEach { it.next(json.toString()) }
-                        return@onWacth
+                        deleteFlag = true
                     }
-                    if (json.getJSONObject("object").getJSONObject("metadata").has("deletionTimestamp")) {
-                        addCache(uid, line, true, name, kind)
-                        val timeStr = json.getJSONObject("object").getJSONObject("metadata").getString("deletionTimestamp")
-                        val datetime = DateTime(timeStr)
-                        json.put("deletionTimestamp", datetime)
-                        json.put("beforeNow", datetime.isBeforeNow)
-                        json.put("afterNow", datetime.isAfterNow)
-                        //log.info("json.toString----- {}",json.toString())
-                        dispatcherSink.forEach { it.next(json.toString()) }
-                        return@onWacth
-                    }
-                    addCache(uid, line, false, name, kind)
-                    dispatcherSink.forEach { it.next(line) }
+                    addCache(uid, line, deleteFlag, name, kind)
+                    json.put("notCache",true)
+                    dispatcherSink.forEach { it.next(json.toString()) }
                 }
             }
         } as CurlEvent

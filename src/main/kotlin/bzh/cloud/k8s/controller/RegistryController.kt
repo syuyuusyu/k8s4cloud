@@ -32,6 +32,8 @@ import java.io.File
 import java.nio.file.NoSuchFileException
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.stream.Collectors
+import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 
 
@@ -46,131 +48,133 @@ class RegistryController(
 
     @Value("\${self.tempFileDir}")
     lateinit var tempFileDir: String
-    @Value("\${self.officalRegistryUrl}")
-    lateinit var officalRegistryUrl:String
-    @Value("\${self.registryUrl}")
-    lateinit var registryUrl:String
-    @Value("\${self.deleteImgUrl}")
-    lateinit var deleteImgUrl:String
 
+    @Value("\${self.officalRegistryUrl}")
+    lateinit var officalRegistryUrl: String
+
+    @Value("\${self.registryUrl}")
+    lateinit var registryUrl: String
+
+    @Value("\${self.deleteImgUrl}")
+    lateinit var deleteImgUrl: String
 
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(RegistryController::class.java)
     }
 
-    @GetMapping("/test",produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
-    fun test():Mono<Resource>{
+    @GetMapping("/test", produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
+    fun test(): Mono<Resource> {
         val a = FileSystemResource("/Users/syu/scp/4cloud1.3.tar")
         return Mono.just(a)
     }
 
 
     @GetMapping("/search")
-    fun search(@RequestParam(required=false) url:String?,@RequestParam keyword:String,@RequestParam page:Int,@RequestParam pagesize:Int):Mono<Map<String,Any>>{
+    fun search(@RequestParam(required = false) url: String?, @RequestParam keyword: String, @RequestParam page: Int, @RequestParam pagesize: Int): Mono<Map<String, Any>> {
         var queryUrl = officalRegistryUrl
-        if(url!=null){
+        if (url != null) {
             queryUrl = url
         }
-        return registryService.search(queryUrl,keyword,page,pagesize)
+        return registryService.search(queryUrl, keyword, page, pagesize)
     }
 
     @GetMapping("/images")
-    fun images():List<String>{
-        val list = ArrayList<String>()
-        val catalog = curl {
-            request {
-                url("${registryUrl}/v2/_catalog")
-            }
-            returnType(Catalog::class.java)
-        } as Catalog
-        catalog.repositories?.forEach { name->
-            val tag = curl {
-                request {
-                    url("${registryUrl}/v2/${name}/tags/list")
-                }
-                returnType(Tags::class.java)
-            } as Tags
-            tag.tags?.forEach {
-                list.add("$name:$it")
-            }
+    fun images(): List<String> = (curl {
+        request {
+            url("${registryUrl}/v2/_catalog")
         }
-        return list
-    }
+        returnType(Catalog::class.java)
+    } as Catalog
+            ).repositories!!.stream().parallel().map { name ->
+                curl {
+                    request {
+                        url("${registryUrl}/v2/${name}/tags/list")
+                    }
+                    returnType(Tags::class.java)
+                } as Tags
+            }.collect(Collectors.toList()).fold(ArrayList<String>()) { arr, tag ->
+                tag.tags?.forEach { arr.add("${tag.name}:$it") }
+                arr
+            }
+
 
     @GetMapping("/catalog")
-    fun catalog():Catalog{
+    fun catalog(): Catalog {
         return localRegistryApi.catalogGet(null)
     }
-    private fun doname(name: String,url: String?,username: String?):Pair<String,String>{
+
+    private fun doname(name: String, url: String?, username: String?): Pair<String, String> {
         var queryName = name
         var queryUrl = officalRegistryUrl
-        if(url!=null) {
+        if (url != null) {
             queryUrl = url
         }
-        if(username!=null) queryName = "$username/$name"
-        return Pair(queryUrl,queryName)
+        if (username != null) queryName = "$username/$name"
+        return Pair(queryUrl, queryName)
     }
+
     @GetMapping("/tagList/{name}")
-    fun tagList(@PathVariable name: String,@RequestParam(required=false) url:String?,@RequestParam(required=false) username:String?):Mono<Tags>{
-        val (queryUrl,queryName) = doname(name,url,username)
-        try{
-            val a =  localRegistryApi.nameTagsListGet(name,null,null)
+    fun tagList(@PathVariable name: String, @RequestParam(required = false) url: String?, @RequestParam(required = false) username: String?): Mono<Tags> {
+        val (queryUrl, queryName) = doname(name, url, username)
+        try {
+            val a = localRegistryApi.nameTagsListGet(name, null, null)
             return Mono.just(a)
-        }catch (e:Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
-            return  Mono.empty()
+            return Mono.empty()
         }
     }
 
 
     @GetMapping("/dockhub/tagList/{name}")
-    fun dockhubtagList(@PathVariable name: String,@RequestParam(required=false) url:String?,@RequestParam(required=false) username:String?):Mono<Tags>{
-        val (queryUrl,queryName) = doname(name,url,username)
-        return registryService.tagList(queryUrl,queryName)
+    fun dockhubtagList(@PathVariable name: String, @RequestParam(required = false) url: String?, @RequestParam(required = false) username: String?): Mono<Tags> {
+        val (queryUrl, queryName) = doname(name, url, username)
+        return registryService.tagList(queryUrl, queryName)
     }
 
     @GetMapping("/dockhub/{name}/mountImage/{tag}")
-    fun mountImage(@PathVariable name: String,@PathVariable tag:String,@RequestParam(required=false) url:String?,@RequestParam(required=false) username:String?):Mono<DownloadInfo>{
-        val (queryUrl,queryName) = doname(name,url,username)
-        return registryService.startDownloadOrMount(queryUrl,queryName,tag,SessionProgress.Operation.MOUNT)
+    fun mountImage(@PathVariable name: String, @PathVariable tag: String, @RequestParam(required = false) url: String?, @RequestParam(required = false) username: String?): Mono<DownloadInfo> {
+        val (queryUrl, queryName) = doname(name, url, username)
+        return registryService.startDownloadOrMount(queryUrl, queryName, tag, SessionProgress.Operation.MOUNT)
     }
 
     @GetMapping("/dockhub/{name}/startdownload/{tag}")
-    fun dockhubstartDownload(@PathVariable name: String, @PathVariable tag: String,@RequestParam(required=false) url:String?,@RequestParam(required=false) username:String?): Mono<DownloadInfo> {
-        val (queryUrl,queryName) = doname(name,url,username)
-        return registryService.startDownloadOrMount(queryUrl, queryName, tag,SessionProgress.Operation.DOWNLOAD)
+    fun dockhubstartDownload(@PathVariable name: String, @PathVariable tag: String, @RequestParam(required = false) url: String?, @RequestParam(required = false) username: String?): Mono<DownloadInfo> {
+        val (queryUrl, queryName) = doname(name, url, username)
+        return registryService.startDownloadOrMount(queryUrl, queryName, tag, SessionProgress.Operation.DOWNLOAD)
     }
 
     @GetMapping("/dockhub/downloaddetail/{session}", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun dockhubdownloaddetail(@PathVariable session: String): Flux<ProcessDetail> = registryService.processdetail(session)
 
     @GetMapping("/dockhub/downloadimg/{session}", produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
-    fun dockhubdownloadimg(@PathVariable session: String, response: ServerHttpResponse): Mono<Resource> = registryService.downloadimg( session, response)
+    fun dockhubdownloadimg(@PathVariable session: String, response: ServerHttpResponse): Mono<Resource> = registryService.downloadimg(session, response)
 
     @GetMapping("/{name}/startdownload/{tag}")
-    fun startDownload(@PathVariable name: String, @PathVariable tag: String): Mono<DownloadInfo> = registryService.startDownloadOrMount(registryUrl, name, tag,SessionProgress.Operation.DOWNLOAD)
+    fun startDownload(@PathVariable name: String, @PathVariable tag: String): Mono<DownloadInfo> = registryService.startDownloadOrMount(registryUrl, name, tag, SessionProgress.Operation.DOWNLOAD)
 
     @GetMapping("/downloaddetail/{session}", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun downloaddetail(@PathVariable session: String): Flux<ProcessDetail> = registryService.processdetail(session)
 
     @GetMapping("/downloadimg/{session}", produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
-    fun downloadimg(@PathVariable session: String, response: ServerHttpResponse): Mono<Resource> = registryService.downloadimg( session, response)
+    fun downloadimg(@PathVariable session: String, response: ServerHttpResponse): Mono<Resource> = registryService.downloadimg(session, response)
 
     @Bean
     fun upload(): RouterFunction<ServerResponse> {
         return RouterFunctions.route(RequestPredicates.POST("/registry/upload").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)),
                 HandlerFunction<ServerResponse> { request ->
                     request.body(BodyExtractors.toMultipartData()).flatMap { parts ->
-                        fun err(msg:String):Mono<ServerResponse> = ServerResponse.status(HttpStatus.OK)
-                                .body(BodyInserters.fromObject(mapOf("success" to false,"msg" to msg)))
+                        fun err(msg: String): Mono<ServerResponse> = ServerResponse.status(HttpStatus.OK)
+                                .body(BodyInserters.fromObject(mapOf("success" to false, "msg" to msg)))
+
                         val session = RandomStringUtils.randomAlphanumeric(8)
                         val map: Map<String, Part> = parts.toSingleValueMap()
                         val filePart: FilePart = map["file"]!! as FilePart
                         filePart.transferTo(File("$tempFileDir/$session.tar"))
-                        try{
+                        try {
                             registryService.decompressUploadFile(session)
-                        }catch (e:Exception){
+                        } catch (e: Exception) {
                             e.printStackTrace()
                             return@flatMap err("解压上传文件出错!${e}")
                         }
@@ -178,16 +182,16 @@ class RegistryController(
                         val repositoriesExists = registryService.repositoriesExist(session)
                         val nop = request.queryParam("name")
                         val top = request.queryParam("tag")
-                        if(!repositoriesExists && (!nop.isPresent || !top.isPresent)){
+                        if (!repositoriesExists && (!nop.isPresent || !top.isPresent)) {
                             registryService.clearFile(session)
                             err("上传文件中没有名称和版本信息，必须指定")
-                        }else{
-                            try{
-                                registryService.upload(session,nop.orElse(""),top.orElse(""),null)
-                            }catch (e:NoSuchFileException){
+                        } else {
+                            try {
+                                registryService.upload(session, nop.orElse(""), top.orElse(""), null)
+                            } catch (e: NoSuchFileException) {
                                 e.printStackTrace()
                                 return@flatMap err("上传文件出错,文件内容缺失${e}")
-                            }catch (e:Exception){
+                            } catch (e: Exception) {
                                 e.printStackTrace()
                                 return@flatMap err("上传文件出错,${e}")
                             }
@@ -208,15 +212,14 @@ class RegistryController(
     fun processdetailx(@PathVariable session: String): Flux<ProcessDetail> = registryService.processdetail(session)
 
     @DeleteMapping("/{name}/deleteimg/{tag}")
-    fun delete(@PathVariable name: String, @PathVariable tag: String):Map<String,Any>{
+    fun delete(@PathVariable name: String, @PathVariable tag: String): Map<String, Any> {
         return curl {
             request {
                 url("$deleteImgUrl/$name/deleteimg/$tag")
             }
-            returnType( object : TypeReference<Map<String, Any>>(){})
+            returnType(object : TypeReference<Map<String, Any>>() {})
         } as Map<String, Any>
     }
-
 
 
 }

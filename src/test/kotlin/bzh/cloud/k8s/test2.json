@@ -1,1 +1,160 @@
-{"type":"MODIFIED","object":{"reason":"Failed","metadata":{"uid":"0cfc6919-e57f-46d3-b5b3-1bde54453427","resourceVersion":"9518264","name":"testpod-deploy-84b6db8f5-v682r.16167abbafbcc2a8","namespace":"default","creationTimestamp":"2020-06-08T05:34:20Z","selfLink":"/api/v1/namespaces/default/events/testpod-deploy-84b6db8f5-v682r.16167abbafbcc2a8"},"involvedObject":{"uid":"6314644b-acb0-4af7-a896-1782056d0b08","apiVersion":"v1","kind":"Pod","resourceVersion":"9517929","namespace":"default","name":"testpod-deploy-84b6db8f5-v682r","fieldPath":"spec.containers{alpine}"},"reportingInstance":"","kind":"Event","count":12,"source":{"component":"kubelet","host":"buzhuo-cloud.novalocal"},"message":"Error: InvalidImageName","type":"Warning","reportingComponent":"","firstTimestamp":"2020-06-08T05:34:24Z","apiVersion":"v1","lastTimestamp":"2020-06-08T05:36:31Z","eventTime":null}}
+{
+  "type": "MODIFIED",
+  "object": {
+    "kind": "Pod",
+    "apiVersion": "v1",
+    "metadata": {
+      "name": "alpine-deploy-698bf48b9-95tnt",
+      "generateName": "alpine-deploy-698bf48b9-",
+      "namespace": "default",
+      "selfLink": "/api/v1/namespaces/default/pods/alpine-deploy-698bf48b9-95tnt",
+      "uid": "fddc2b9b-ffc9-475f-aad9-347c907f5971",
+      "resourceVersion": "66490",
+      "creationTimestamp": "2020-06-20T13:35:23Z",
+      "deletionTimestamp": "2020-06-20T13:37:31Z",
+      "deletionGracePeriodSeconds": 30,
+      "labels": {
+        "app": "alpine",
+        "pod-template-hash": "698bf48b9"
+      },
+      "ownerReferences": [
+        {
+          "apiVersion": "apps/v1",
+          "kind": "ReplicaSet",
+          "name": "alpine-deploy-698bf48b9",
+          "uid": "ec3d61e0-0c0b-42fb-a5ad-eda49026b071",
+          "controller": true,
+          "blockOwnerDeletion": true
+        }
+      ]
+    },
+    "spec": {
+      "volumes": [
+        {
+          "name": "default-token-hld77",
+          "secret": {
+            "secretName": "default-token-hld77",
+            "defaultMode": 420
+          }
+        }
+      ],
+      "containers": [
+        {
+          "name": "alpine",
+          "image": "alpine-misc:v2",
+          "command": [
+            "sleep",
+            "99999"
+          ],
+          "resources": {
+            "limits": {
+              "cpu": "100m",
+              "memory": "100Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "100Mi"
+            }
+          },
+          "volumeMounts": [
+            {
+              "name": "default-token-hld77",
+              "readOnly": true,
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+            }
+          ],
+          "terminationMessagePath": "/dev/termination-log",
+          "terminationMessagePolicy": "File",
+          "imagePullPolicy": "IfNotPresent"
+        }
+      ],
+      "restartPolicy": "Always",
+      "terminationGracePeriodSeconds": 30,
+      "dnsPolicy": "ClusterFirst",
+      "serviceAccountName": "default",
+      "serviceAccount": "default",
+      "nodeName": "docker-desktop",
+      "securityContext": {},
+      "schedulerName": "default-scheduler",
+      "tolerations": [
+        {
+          "key": "node.kubernetes.io/not-ready",
+          "operator": "Exists",
+          "effect": "NoExecute",
+          "tolerationSeconds": 300
+        },
+        {
+          "key": "node.kubernetes.io/unreachable",
+          "operator": "Exists",
+          "effect": "NoExecute",
+          "tolerationSeconds": 300
+        }
+      ],
+      "priority": 0,
+      "enableServiceLinks": true
+    },
+    "status": {
+      "phase": "Running",
+      "conditions": [
+        {
+          "type": "Initialized",
+          "status": "True",
+          "lastProbeTime": null,
+          "lastTransitionTime": "2020-06-20T13:35:23Z"
+        },
+        {
+          "type": "Ready",
+          "status": "False",
+          "lastProbeTime": null,
+          "lastTransitionTime": "2020-06-20T13:37:31Z",
+          "reason": "ContainersNotReady",
+          "message": "containers with unready status: [alpine]"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "False",
+          "lastProbeTime": null,
+          "lastTransitionTime": "2020-06-20T13:37:31Z",
+          "reason": "ContainersNotReady",
+          "message": "containers with unready status: [alpine]"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True",
+          "lastProbeTime": null,
+          "lastTransitionTime": "2020-06-20T13:35:23Z"
+        }
+      ],
+      "hostIP": "192.168.65.3",
+      "podIP": "10.1.0.51",
+      "podIPs": [
+        {
+          "ip": "10.1.0.51"
+        }
+      ],
+      "startTime": "2020-06-20T13:35:23Z",
+      "containerStatuses": [
+        {
+          "name": "alpine",
+          "state": {
+            "terminated": {
+              "exitCode": 137,
+              "reason": "Error",
+              "startedAt": "2020-06-20T13:35:24Z",
+              "finishedAt": "2020-06-20T13:37:31Z",
+              "containerID": "docker://1d4ddf535e1510e2033dc536e4000505b34871011f22cc163c7a4dcde35361fe"
+            }
+          },
+          "lastState": {},
+          "ready": false,
+          "restartCount": 0,
+          "image": "10.10.50.101:5000/alpine-misc:v2",
+          "imageID": "docker-pullable://10.10.50.101:5000/alpine-misc@sha256:8c4eaa7201c2e58f328f48439a5eb074c40ca3a48862a4558291010471083148",
+          "containerID": "docker://1d4ddf535e1510e2033dc536e4000505b34871011f22cc163c7a4dcde35361fe",
+          "started": false
+        }
+      ],
+      "qosClass": "Guaranteed"
+    }
+  }
+}

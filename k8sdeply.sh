@@ -1,4 +1,4 @@
-v="v1.04"
+v="v1.06"
 ip="10.10.25.1:5000"
 mvn package -Dmaven.test.skip=true &&
 docker build -t k8s4cloud:$v . #&&

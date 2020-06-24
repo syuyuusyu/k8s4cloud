@@ -96,7 +96,7 @@ class PodController(
     fun logcurl(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
         val (client, api) = bzh.cloud.k8s.config.watchClient()
         val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
-                Int.MAX_VALUE, null, false, Int.MAX_VALUE, 100, false)
+                Int.MAX_VALUE, null, false, Int.MAX_VALUE, 20, false)
         return Flux.create { sink->
             sink.next(firstlog)
             var eve :CurlEvent?=null
