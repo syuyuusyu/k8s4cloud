@@ -1,287 +1,48 @@
-[
-  {
-    "type": "ADDED",
-    "object": {
-      "kind": "Pod",
-      "status": {
-        "phase": "Pending",
-        "qosClass": "Guaranteed"
-      }
-    }
+{
+  "kind": "NodeMetricsList",
+  "apiVersion": "metrics.k8s.io/v1beta1",
+  "metadata": {
+    "selfLink": "/apis/metrics.k8s.io/v1beta1/nodes"
   },
-  {
-    "type": "MODIFIED",
-    "object": {
-      "kind": "Pod",
-      "status": {
-        "phase": "Pending",
-        "conditions": [
-          {
-            "type": "PodScheduled",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          }
-        ],
-        "qosClass": "Guaranteed"
+  "items": [
+    {
+      "metadata": {
+        "name": "master",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/nodes/master",
+        "creationTimestamp": "2020-06-28T05:31:29Z"
+      },
+      "timestamp": "2020-06-28T05:31:00Z",
+      "window": "1m0s",
+      "usage": {
+        "cpu": "943m",
+        "memory": "50924644Ki"
+      }
+    },
+    {
+      "metadata": {
+        "name": "node1",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/nodes/node1",
+        "creationTimestamp": "2020-06-28T05:31:29Z"
+      },
+      "timestamp": "2020-06-28T05:31:00Z",
+      "window": "1m0s",
+      "usage": {
+        "cpu": "660m",
+        "memory": "19017020Ki"
+      }
+    },
+    {
+      "metadata": {
+        "name": "node2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/nodes/node2",
+        "creationTimestamp": "2020-06-28T05:31:29Z"
+      },
+      "timestamp": "2020-06-28T05:31:00Z",
+      "window": "1m0s",
+      "usage": {
+        "cpu": "530m",
+        "memory": "18461212Ki"
       }
     }
-  },
-  {
-    "type": "MODIFIED",
-    "object": {
-      "kind": "Pod",
-      "status": {
-        "phase": "Pending",
-        "conditions": [
-          {
-            "type": "Initialized",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          },
-          {
-            "type": "Ready",
-            "status": "False",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z",
-            "reason": "ContainersNotReady",
-            "message": "containers with unready status: [testpod]"
-          },
-          {
-            "type": "ContainersReady",
-            "status": "False",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z",
-            "reason": "ContainersNotReady",
-            "message": "containers with unready status: [testpod]"
-          },
-          {
-            "type": "PodScheduled",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          }
-        ],
-        "hostIP": "192.168.65.3",
-        "startTime": "2020-06-20T14:17:38Z",
-        "containerStatuses": [
-          {
-            "name": "testpod",
-            "state": {
-              "waiting": {
-                "reason": "ContainerCreating"
-              }
-            },
-            "lastState": {},
-            "ready": false,
-            "restartCount": 0,
-            "image": "testpod:v1.03",
-            "imageID": "",
-            "started": false
-          }
-        ],
-        "qosClass": "Guaranteed"
-      }
-    }
-  },
-  {
-    "type": "MODIFIED",
-    "object": {
-      "kind": "Pod",
-      "status": {
-        "phase": "Running",
-        "conditions": [
-          {
-            "type": "Initialized",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          },
-          {
-            "type": "Ready",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:40Z"
-          },
-          {
-            "type": "ContainersReady",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:40Z"
-          },
-          {
-            "type": "PodScheduled",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          }
-        ],
-        "hostIP": "192.168.65.3",
-        "podIP": "10.1.0.56",
-        "podIPs": [
-          {
-            "ip": "10.1.0.56"
-          }
-        ],
-        "startTime": "2020-06-20T14:17:38Z",
-        "containerStatuses": [
-          {
-            "name": "testpod",
-            "state": {
-              "running": {
-                "startedAt": "2020-06-20T14:17:39Z"
-              }
-            },
-            "lastState": {},
-            "ready": true,
-            "restartCount": 0,
-            "image": "10.10.25.1:5000/testpod:v1.03",
-            "imageID": "docker-pullable://10.10.25.1:5000/testpod@sha256:5f837a31719deb556ebf120a286252b70ed115228054a7fcce735d77a1563ee4",
-            "containerID": "docker://9ce50066704b6bc34009841d911990857f3b4adb6ed4811c9d3385377f4eb498",
-            "started": true
-          }
-        ],
-        "qosClass": "Guaranteed"
-      }
-    }
-  },
-  {
-    "type": "MODIFIED",
-    "object": {
-      "kind": "Pod",
-      "status": {
-        "phase": "Running",
-        "conditions": [
-          {
-            "type": "Initialized",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          },
-          {
-            "type": "Ready",
-            "status": "False",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:21:26Z",
-            "reason": "ContainersNotReady",
-            "message": "containers with unready status: [testpod]"
-          },
-          {
-            "type": "ContainersReady",
-            "status": "False",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:21:26Z",
-            "reason": "ContainersNotReady",
-            "message": "containers with unready status: [testpod]"
-          },
-          {
-            "type": "PodScheduled",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          }
-        ],
-        "hostIP": "192.168.65.3",
-        "podIP": "10.1.0.56",
-        "podIPs": [
-          {
-            "ip": "10.1.0.56"
-          }
-        ],
-        "startTime": "2020-06-20T14:17:38Z",
-        "containerStatuses": [
-          {
-            "name": "testpod",
-            "state": {
-              "terminated": {
-                "exitCode": 137,
-                "reason": "OOMKilled",
-                "startedAt": "2020-06-20T14:17:39Z",
-                "finishedAt": "2020-06-20T14:21:25Z",
-                "containerID": "docker://9ce50066704b6bc34009841d911990857f3b4adb6ed4811c9d3385377f4eb498"
-              }
-            },
-            "lastState": {},
-            "ready": false,
-            "restartCount": 0,
-            "image": "10.10.25.1:5000/testpod:v1.03",
-            "imageID": "docker-pullable://10.10.25.1:5000/testpod@sha256:5f837a31719deb556ebf120a286252b70ed115228054a7fcce735d77a1563ee4",
-            "containerID": "docker://9ce50066704b6bc34009841d911990857f3b4adb6ed4811c9d3385377f4eb498",
-            "started": false
-          }
-        ],
-        "qosClass": "Guaranteed"
-      }
-    }
-  },
-  {
-    "type": "MODIFIED",
-    "object": {
-      "kind": "Pod",
-      "status": {
-        "phase": "Running",
-        "conditions": [
-          {
-            "type": "Initialized",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          },
-          {
-            "type": "Ready",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:21:27Z"
-          },
-          {
-            "type": "ContainersReady",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:21:27Z"
-          },
-          {
-            "type": "PodScheduled",
-            "status": "True",
-            "lastProbeTime": null,
-            "lastTransitionTime": "2020-06-20T14:17:38Z"
-          }
-        ],
-        "hostIP": "192.168.65.3",
-        "podIP": "10.1.0.56",
-        "podIPs": [
-          {
-            "ip": "10.1.0.56"
-          }
-        ],
-        "startTime": "2020-06-20T14:17:38Z",
-        "containerStatuses": [
-          {
-            "name": "testpod",
-            "state": {
-              "running": {
-                "startedAt": "2020-06-20T14:21:26Z"
-              }
-            },
-            "lastState": {
-              "terminated": {
-                "exitCode": 137,
-                "reason": "OOMKilled",
-                "startedAt": "2020-06-20T14:17:39Z",
-                "finishedAt": "2020-06-20T14:21:25Z",
-                "containerID": "docker://9ce50066704b6bc34009841d911990857f3b4adb6ed4811c9d3385377f4eb498"
-              }
-            },
-            "ready": true,
-            "restartCount": 1,
-            "image": "10.10.25.1:5000/testpod:v1.03",
-            "imageID": "docker-pullable://10.10.25.1:5000/testpod@sha256:5f837a31719deb556ebf120a286252b70ed115228054a7fcce735d77a1563ee4",
-            "containerID": "docker://775ee30b06a7bbf60046e343e68de060822eb04e2fbcb07b5d372b16f0fb5cdf",
-            "started": true
-          }
-        ],
-        "qosClass": "Guaranteed"
-      }
-    }
-  }
-]
+  ]
+}

@@ -94,7 +94,7 @@ class RegistryController(
                     returnType(Tags::class.java)
                 } as Tags
             }.collect(Collectors.toList()).fold(ArrayList<String>()) { arr, tag ->
-                tag.tags?.forEach { arr.add("${tag.name}:$it") }
+                tag.tags!!.map{"${tag.name}:$it"}.forEach {arr.add(it)}
                 arr
             }
 

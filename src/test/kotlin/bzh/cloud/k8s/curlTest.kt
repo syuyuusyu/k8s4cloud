@@ -321,6 +321,23 @@ class CurlTest {
 
         Thread.sleep(1000*5)
     }
+
+    @Test
+    fun metrics(){
+        val (client, api) = bzh.cloud.k8s.config.watchClient()
+        val response = curl{
+            client { client.httpClient }
+            request{
+                url("${client.basePath}/apis/metrics.k8s.io/v1beta1/nodes")
+
+            }
+        }as Response
+        val str =  response.body()?.string()!!
+
+        println(str)
+    }
+
+
 }
 
 

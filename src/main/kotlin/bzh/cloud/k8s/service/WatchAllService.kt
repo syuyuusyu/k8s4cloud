@@ -2,11 +2,12 @@ package bzh.cloud.k8s.service
 
 import bzh.cloud.k8s.expansion.CurlEvent
 import bzh.cloud.k8s.expansion.curl
-import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api
-import io.kubernetes.client.openapi.models.V1Pod
-import io.kubernetes.client.openapi.models.V1PodBuilder
+
+import io.kubernetes.client.openapi.ApiClient
+
 import kotlinx.coroutines.*
-import org.joda.time.DateTime
+import okhttp3.Response
+
 import org.json.JSONObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -15,9 +16,8 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import reactor.core.publisher.FluxSink
 import java.util.*
-import java.util.concurrent.Executor
+
 import java.util.concurrent.Executors
-import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
@@ -25,7 +25,8 @@ import kotlin.collections.HashSet
 @Service
 @EnableScheduling
 class WatchAllService(
-        val atomicThread: ExecutorCoroutineDispatcher
+        val atomicThread: ExecutorCoroutineDispatcher,
+        val apiClient: ApiClient
 ) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
     companion object {
@@ -74,9 +75,10 @@ class WatchAllService(
             "ClusterRole" to "/apis/rbac.authorization.k8s.io/v1/clusterroles", //clusterroles
             "RoleBinding" to "/apis/rbac.authorization.k8s.io/v1/rolebindings", //rolebindings
             "Role" to "/apis/rbac.authorization.k8s.io/v1/roles" //roles
+            //"Metrics" to "/apis/metrics.k8s.io/v1beta1/nodes"
     )
 
-    val watchPool = Executors.newFixedThreadPool(urlMap.size) { r ->
+    val watchPool = Executors.newFixedThreadPool(urlMap.size + 2) { r ->
         val t = Thread(r)
         t.isDaemon = true
         t
@@ -85,7 +87,14 @@ class WatchAllService(
     @Scheduled(fixedRate = 1000 * 30)
     fun heartbeat() {
         log.info("heartbeat")
-        dispatcherSink.forEach { it.next(heartbeat) }
+        val removeSink = HashSet<FluxSink<String>>()
+        dispatcherSink.forEach {
+            if (it.isCancelled) {
+                removeSink.add(it)
+            }
+            it.next(heartbeat)
+        }
+        dispatcherSink.removeAll(removeSink)
         urlMap.forEach { kind, url ->
             if (!curlEventMap.containsKey(kind)) {
                 curlEventMap[kind] = watch(url)
@@ -99,12 +108,21 @@ class WatchAllService(
         }
     }
 
+    @Scheduled(fixedRate = 1000 * 60)
+    fun metrics(){
+        log.info("metrics")
+        metricsNodes()
+        metricsPod()
+    }
+
     fun addSink(sink: FluxSink<String>) {
         launch {
             withContext(atomicThread) {
                 sink.next(heartbeat)
                 cache.values.forEach { sink.next(it) }
                 dispatcherSink.add(sink)
+                metricsNodes()
+                metricsPod()
             }
         }
     }
@@ -117,12 +135,11 @@ class WatchAllService(
                 } else {
                     cache.put(uid, json)
                 }
-                log.info("addCache deleteFlag:{},kind:{},name:{} cache-size:{}", deleteFlag,kind,name,cache.size)
+                log.info("addCache deleteFlag:{},kind:{},name:{} cache-size:{}", deleteFlag, kind, name, cache.size)
             }
         }
 
     }
-
 
     fun watch(url: String): CurlEvent {
         val (client, api) = bzh.cloud.k8s.config.watchClient()
@@ -137,8 +154,9 @@ class WatchAllService(
             event {
                 threadPool(watchPool)
                 onWacth { line ->
-                    if (url == "/api/v1/pods") {
-                        log.info("{}", line)
+                    if (url == "/api/v1/nodes") {
+                        //log.info("{}", line)
+
                     }
                     val json = JSONObject(line)
                     val type = json.getString("type")
@@ -151,12 +169,50 @@ class WatchAllService(
                         deleteFlag = true
                     }
                     addCache(uid, line, deleteFlag, name, kind)
-                    json.put("notCache",true)
+                    json.put("notCache", true)
                     dispatcherSink.forEach { it.next(json.toString()) }
                 }
             }
         } as CurlEvent
     }
 
+    fun metricsNodes() {
+        val (client, api) = bzh.cloud.k8s.config.watchClient()
+        launch(watchPool.asCoroutineDispatcher()) {
+            val response = curl {
+                client { client.httpClient }
+                request {
+                    url("${client.basePath}/apis/metrics.k8s.io/v1beta1/nodes")
+                }
+
+            }  as Response
+            val str = response.body()?.string()!!
+            //log.info(str)
+            dispatcherSink.forEach { it.next(str) }
+        }
+
+    }
+
+    fun metricsPod() {
+        val (client, api) = bzh.cloud.k8s.config.watchClient()
+        launch(watchPool.asCoroutineDispatcher()) {
+            val response = curl {
+                client { client.httpClient }
+                request {
+                    url("${client.basePath}/apis/metrics.k8s.io/v1beta1/pods")
+
+                }
+            } as Response
+            val str = response.body()?.string()!!
+            //log.info(str)
+            dispatcherSink.forEach { it.next(str) }
+        }
+    }
 }
+
+//  /apis/metrics.k8s.io/v1beta1/namespaces/{namespace}/pods
+//  /apis/metrics.k8s.io/v1beta1/namespaces/{namespace}/pods/{name}
+//  /apis/metrics.k8s.io/v1beta1/nodes
+//  /apis/metrics.k8s.io/v1beta1/nodes/{name}
+//  /apis/metrics.k8s.io/v1beta1/pods
 

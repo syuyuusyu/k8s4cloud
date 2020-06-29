@@ -1,160 +1,1477 @@
 {
-  "type": "MODIFIED",
-  "object": {
-    "kind": "Pod",
-    "apiVersion": "v1",
-    "metadata": {
-      "name": "alpine-deploy-698bf48b9-95tnt",
-      "generateName": "alpine-deploy-698bf48b9-",
-      "namespace": "default",
-      "selfLink": "/api/v1/namespaces/default/pods/alpine-deploy-698bf48b9-95tnt",
-      "uid": "fddc2b9b-ffc9-475f-aad9-347c907f5971",
-      "resourceVersion": "66490",
-      "creationTimestamp": "2020-06-20T13:35:23Z",
-      "deletionTimestamp": "2020-06-20T13:37:31Z",
-      "deletionGracePeriodSeconds": 30,
-      "labels": {
-        "app": "alpine",
-        "pod-template-hash": "698bf48b9"
+  "kind": "PodMetricsList",
+  "apiVersion": "metrics.k8s.io/v1beta1",
+  "metadata": {
+    "selfLink": "/apis/metrics.k8s.io/v1beta1/pods"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "keycloak-78544f6b9f-zlr8x",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/keycloak-78544f6b9f-zlr8x",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
       },
-      "ownerReferences": [
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
         {
-          "apiVersion": "apps/v1",
-          "kind": "ReplicaSet",
-          "name": "alpine-deploy-698bf48b9",
-          "uid": "ec3d61e0-0c0b-42fb-a5ad-eda49026b071",
-          "controller": true,
-          "blockOwnerDeletion": true
+          "name": "keycloak",
+          "usage": {
+            "cpu": "1m",
+            "memory": "543812Ki"
+          }
         }
       ]
     },
-    "spec": {
-      "volumes": [
-        {
-          "name": "default-token-hld77",
-          "secret": {
-            "secretName": "default-token-hld77",
-            "defaultMode": 420
-          }
-        }
-      ],
+    {
+      "metadata": {
+        "name": "kube-proxy-wrvk9",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-proxy-wrvk9",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
       "containers": [
         {
-          "name": "alpine",
-          "image": "alpine-misc:v2",
-          "command": [
-            "sleep",
-            "99999"
-          ],
-          "resources": {
-            "limits": {
-              "cpu": "100m",
-              "memory": "100Mi"
-            },
-            "requests": {
-              "cpu": "100m",
-              "memory": "100Mi"
-            }
-          },
-          "volumeMounts": [
-            {
-              "name": "default-token-hld77",
-              "readOnly": true,
-              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
-            }
-          ],
-          "terminationMessagePath": "/dev/termination-log",
-          "terminationMessagePolicy": "File",
-          "imagePullPolicy": "IfNotPresent"
+          "name": "kube-proxy",
+          "usage": {
+            "cpu": "6m",
+            "memory": "78748Ki"
+          }
         }
-      ],
-      "restartPolicy": "Always",
-      "terminationGracePeriodSeconds": 30,
-      "dnsPolicy": "ClusterFirst",
-      "serviceAccountName": "default",
-      "serviceAccount": "default",
-      "nodeName": "docker-desktop",
-      "securityContext": {},
-      "schedulerName": "default-scheduler",
-      "tolerations": [
-        {
-          "key": "node.kubernetes.io/not-ready",
-          "operator": "Exists",
-          "effect": "NoExecute",
-          "tolerationSeconds": 300
-        },
-        {
-          "key": "node.kubernetes.io/unreachable",
-          "operator": "Exists",
-          "effect": "NoExecute",
-          "tolerationSeconds": 300
-        }
-      ],
-      "priority": 0,
-      "enableServiceLinks": true
+      ]
     },
-    "status": {
-      "phase": "Running",
-      "conditions": [
+    {
+      "metadata": {
+        "name": "iportal-phpmyadmin-65ddbdc554-zj7rm",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/iportal-phpmyadmin-65ddbdc554-zj7rm",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
         {
-          "type": "Initialized",
-          "status": "True",
-          "lastProbeTime": null,
-          "lastTransitionTime": "2020-06-20T13:35:23Z"
+          "name": "iportal-phpmyadmin",
+          "usage": {
+            "cpu": "0",
+            "memory": "47776Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "gisapp-532500-6569cd57f8-ws4fp",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/gisapp-532500-6569cd57f8-ws4fp",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "gisapp-532500",
+          "usage": {
+            "cpu": "3m",
+            "memory": "666652Ki"
+          }
         },
         {
-          "type": "Ready",
-          "status": "False",
-          "lastProbeTime": null,
-          "lastTransitionTime": "2020-06-20T13:37:31Z",
-          "reason": "ContainersNotReady",
-          "message": "containers with unready status: [alpine]"
+          "name": "hosts-daemon",
+          "usage": {
+            "cpu": "0",
+            "memory": "49940Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "metrics-server-58697b6894-vvfdp",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/metrics-server-58697b6894-vvfdp",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "metrics-server",
+          "usage": {
+            "cpu": "2m",
+            "memory": "39484Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "bslicense-server-67df76456c-thmnt",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/bslicense-server-67df76456c-thmnt",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "bslicense-server",
+          "usage": {
+            "cpu": "1m",
+            "memory": "720792Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "coredns-5c98db65d4-nzdnj",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/coredns-5c98db65d4-nzdnj",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "coredns",
+          "usage": {
+            "cpu": "6m",
+            "memory": "36384Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "ispeco-dashboard-api-8665d596c4-k4bn2",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/ispeco-dashboard-api-8665d596c4-k4bn2",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "ispeco-dashboard-api",
+          "usage": {
+            "cpu": "5m",
+            "memory": "3877312Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "prometheus-node-exporter-2xg57",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/prometheus-node-exporter-2xg57",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "prometheus-node-exporter",
+          "usage": {
+            "cpu": "5m",
+            "memory": "60116Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "coredns-5c98db65d4-bkllb",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/coredns-5c98db65d4-bkllb",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "coredns",
+          "usage": {
+            "cpu": "6m",
+            "memory": "37928Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "etcd-master",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/etcd-master",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "etcd",
+          "usage": {
+            "cpu": "44m",
+            "memory": "366912Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "iserver-dc4946596-28dnp",
+        "namespace": "iserver-3",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/iserver-3/pods/iserver-dc4946596-28dnp",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "iserver",
+          "usage": {
+            "cpu": "5m",
+            "memory": "1595712Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "consul-server-2",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/consul-server-2",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "consul-server",
+          "usage": {
+            "cpu": "16m",
+            "memory": "55556Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "kube-proxy-5s7c9",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-proxy-5s7c9",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "kube-proxy",
+          "usage": {
+            "cpu": "9m",
+            "memory": "85340Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "iserver-datacatalog-7dc8f7cd45-bzkt6",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/iserver-datacatalog-7dc8f7cd45-bzkt6",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "iserver-datacatalog",
+          "usage": {
+            "cpu": "7m",
+            "memory": "1159624Ki"
+          }
         },
         {
-          "type": "ContainersReady",
-          "status": "False",
-          "lastProbeTime": null,
-          "lastTransitionTime": "2020-06-20T13:37:31Z",
-          "reason": "ContainersNotReady",
-          "message": "containers with unready status: [alpine]"
+          "name": "hosts-daemon",
+          "usage": {
+            "cpu": "0",
+            "memory": "55972Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "phpmyadmin-5b9f55fcfb-2bx77",
+        "namespace": "iserver-3",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/iserver-3/pods/phpmyadmin-5b9f55fcfb-2bx77",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "phpmyadmin",
+          "usage": {
+            "cpu": "0",
+            "memory": "45292Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "iserver-gateway-7f999b6bdd-qblg4",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/iserver-gateway-7f999b6bdd-qblg4",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "iserver-gateway",
+          "usage": {
+            "cpu": "3m",
+            "memory": "568068Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "mongodb-1",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/mongodb-1",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "mongodb",
+          "usage": {
+            "cpu": "19m",
+            "memory": "124756Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "file-manager-7d4cc88d6d-ppddf",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/file-manager-7d4cc88d6d-ppddf",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "file-manager",
+          "usage": {
+            "cpu": "0",
+            "memory": "67524Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "calico-node-9sd2t",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/calico-node-9sd2t",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "calico-node",
+          "usage": {
+            "cpu": "73m",
+            "memory": "182076Ki"
+          }
         },
         {
-          "type": "PodScheduled",
-          "status": "True",
-          "lastProbeTime": null,
-          "lastTransitionTime": "2020-06-20T13:35:23Z"
+          "name": "install-cni",
+          "usage": {
+            "cpu": "0",
+            "memory": "33620Ki"
+          }
         }
-      ],
-      "hostIP": "192.168.65.3",
-      "podIP": "10.1.0.51",
-      "podIPs": [
+      ]
+    },
+    {
+      "metadata": {
+        "name": "mysql-server-7747664bd6-sz8b4",
+        "namespace": "iserver-3",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/iserver-3/pods/mysql-server-7747664bd6-sz8b4",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
         {
-          "ip": "10.1.0.51"
+          "name": "mysql-server",
+          "usage": {
+            "cpu": "4m",
+            "memory": "958808Ki"
+          }
         }
-      ],
-      "startTime": "2020-06-20T13:35:23Z",
-      "containerStatuses": [
+      ]
+    },
+    {
+      "metadata": {
+        "name": "imanager-help-6f7d5bb4b5-5d68h",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/imanager-help-6f7d5bb4b5-5d68h",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
         {
-          "name": "alpine",
-          "state": {
-            "terminated": {
-              "exitCode": 137,
-              "reason": "Error",
-              "startedAt": "2020-06-20T13:35:24Z",
-              "finishedAt": "2020-06-20T13:37:31Z",
-              "containerID": "docker://1d4ddf535e1510e2033dc536e4000505b34871011f22cc163c7a4dcde35361fe"
-            }
-          },
-          "lastState": {},
-          "ready": false,
-          "restartCount": 0,
-          "image": "10.10.50.101:5000/alpine-misc:v2",
-          "imageID": "docker-pullable://10.10.50.101:5000/alpine-misc@sha256:8c4eaa7201c2e58f328f48439a5eb074c40ca3a48862a4558291010471083148",
-          "containerID": "docker://1d4ddf535e1510e2033dc536e4000505b34871011f22cc163c7a4dcde35361fe",
-          "started": false
+          "name": "imanager-help",
+          "usage": {
+            "cpu": "0",
+            "memory": "23264Ki"
+          }
         }
-      ],
-      "qosClass": "Guaranteed"
+      ]
+    },
+    {
+      "metadata": {
+        "name": "imanager-mysql-d8dc5d989-2pp7w",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/imanager-mysql-d8dc5d989-2pp7w",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "imanager-mysql",
+          "usage": {
+            "cpu": "3m",
+            "memory": "934244Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "fluentd-es-g2nf9",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/fluentd-es-g2nf9",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "fluentd-es",
+          "usage": {
+            "cpu": "7m",
+            "memory": "228308Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "gisapp-test-5b7df85f8f-6dfvs",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/gisapp-test-5b7df85f8f-6dfvs",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "gisapp-test",
+          "usage": {
+            "cpu": "2m",
+            "memory": "868576Ki"
+          }
+        },
+        {
+          "name": "hosts-daemon",
+          "usage": {
+            "cpu": "0",
+            "memory": "50076Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "grafana-74b89548b-4p75d",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/grafana-74b89548b-4p75d",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "grafana",
+          "usage": {
+            "cpu": "1m",
+            "memory": "94980Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "bslicense-ui-85df8786d7-v5s2z",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/bslicense-ui-85df8786d7-v5s2z",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "bslicense-ui",
+          "usage": {
+            "cpu": "0",
+            "memory": "24056Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "nfs-client-provisioner-1-555576f4bc-ncbwk",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/nfs-client-provisioner-1-555576f4bc-ncbwk",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "nfs-client-provisioner-1",
+          "usage": {
+            "cpu": "0",
+            "memory": "23312Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "ispeco-mysql-c959986df-stvzf",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/ispeco-mysql-c959986df-stvzf",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "ispeco-mysql",
+          "usage": {
+            "cpu": "4m",
+            "memory": "924172Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "kibana-848d4fff9-d6fxc",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/kibana-848d4fff9-d6fxc",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "kibana",
+          "usage": {
+            "cpu": "5m",
+            "memory": "294332Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "imanager-nfs-client-provisioner-788b95f7d-chwg2",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/imanager-nfs-client-provisioner-788b95f7d-chwg2",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "imanager-nfs-client-provisioner",
+          "usage": {
+            "cpu": "0",
+            "memory": "25032Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "consul-server-0",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/consul-server-0",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "consul-server",
+          "usage": {
+            "cpu": "17m",
+            "memory": "52628Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "keycloak-mysql-5777c7987c-cbbx7",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/keycloak-mysql-5777c7987c-cbbx7",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "keycloak-mysql",
+          "usage": {
+            "cpu": "3m",
+            "memory": "933136Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "prometheus-node-exporter-4lksj",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/prometheus-node-exporter-4lksj",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "prometheus-node-exporter",
+          "usage": {
+            "cpu": "5m",
+            "memory": "57040Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "hadoop-yarn-file-manager-8464ff864c-wrbkb",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/hadoop-yarn-file-manager-8464ff864c-wrbkb",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "hadoop-yarn-file-manager",
+          "usage": {
+            "cpu": "0",
+            "memory": "19444Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "icloud-registry-5b4c89784d-vln42",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/icloud-registry-5b4c89784d-vln42",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "icloud-registry",
+          "usage": {
+            "cpu": "11m",
+            "memory": "289352Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "fluentd-es-qt4b4",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/fluentd-es-qt4b4",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "fluentd-es",
+          "usage": {
+            "cpu": "5m",
+            "memory": "224084Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "prometheus-6945ccd9b7-ftn6k",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/prometheus-6945ccd9b7-ftn6k",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "prometheus",
+          "usage": {
+            "cpu": "20m",
+            "memory": "452492Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "consul-server-1",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/consul-server-1",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "consul-server",
+          "usage": {
+            "cpu": "36m",
+            "memory": "54008Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "kube-scheduler-master",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-scheduler-master",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "kube-scheduler",
+          "usage": {
+            "cpu": "3m",
+            "memory": "37944Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "imanager-phpmyadmin-967556df9-tf6z8",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/imanager-phpmyadmin-967556df9-tf6z8",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "imanager-phpmyadmin",
+          "usage": {
+            "cpu": "0",
+            "memory": "44936Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "k8s-ui-dep-7766dccdf9-vw64w",
+        "namespace": "cloud-ns",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/cloud-ns/pods/k8s-ui-dep-7766dccdf9-vw64w",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "k8s-ui",
+          "usage": {
+            "cpu": "0",
+            "memory": "125300Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "k8s-dashboard-69fd898df5-rdplq",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/k8s-dashboard-69fd898df5-rdplq",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "k8s-dashboard",
+          "usage": {
+            "cpu": "1m",
+            "memory": "43720Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "ispeco-help-6b5d864f49-g2gqq",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/ispeco-help-6b5d864f49-g2gqq",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "ispeco-help",
+          "usage": {
+            "cpu": "0",
+            "memory": "22740Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "kube-proxy-q6pzq",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-proxy-q6pzq",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "kube-proxy",
+          "usage": {
+            "cpu": "6m",
+            "memory": "75932Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "imanager-dashboard-api-765ff74dbf-mphbz",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/imanager-dashboard-api-765ff74dbf-mphbz",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "imanager-dashboard-api",
+          "usage": {
+            "cpu": "1m",
+            "memory": "1702360Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "php-apache-79c6649489-b9j6m",
+        "namespace": "cloud-ns",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/cloud-ns/pods/php-apache-79c6649489-b9j6m",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "php-apache",
+          "usage": {
+            "cpu": "0",
+            "memory": "18524Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "calico-node-ldwvh",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/calico-node-ldwvh",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "calico-node",
+          "usage": {
+            "cpu": "76m",
+            "memory": "182344Ki"
+          }
+        },
+        {
+          "name": "install-cni",
+          "usage": {
+            "cpu": "0",
+            "memory": "32660Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "imanager-dashboard-ui-556cc64cbf-zszl2",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/imanager-dashboard-ui-556cc64cbf-zszl2",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "imanager-dashboard-ui",
+          "usage": {
+            "cpu": "0",
+            "memory": "33968Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "ftp-64fc99795b-ptvkk",
+        "namespace": "iserver-3",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/iserver-3/pods/ftp-64fc99795b-ptvkk",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "ftp",
+          "usage": {
+            "cpu": "0",
+            "memory": "43280Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "calico-node-dhtpt",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/calico-node-dhtpt",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "calico-node",
+          "usage": {
+            "cpu": "79m",
+            "memory": "180380Ki"
+          }
+        },
+        {
+          "name": "install-cni",
+          "usage": {
+            "cpu": "0",
+            "memory": "32964Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "alertmanager-7c8948f7d-5cts5",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/alertmanager-7c8948f7d-5cts5",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "alertmanager",
+          "usage": {
+            "cpu": "0",
+            "memory": "24380Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "imanager-weixin-hook-6d9bf7f574-zfpc4",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/imanager-weixin-hook-6d9bf7f574-zfpc4",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "imanager-weixin-hook",
+          "usage": {
+            "cpu": "1m",
+            "memory": "152428Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "update-iportal-local-server-629jw",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/update-iportal-local-server-629jw",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "update-iportal-local-server",
+          "usage": {
+            "cpu": "3m",
+            "memory": "20920Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "mongodb-0",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/mongodb-0",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "mongodb",
+          "usage": {
+            "cpu": "19m",
+            "memory": "200780Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "kubernetes-dashboard-6f8d67df77-tq8z2",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kubernetes-dashboard-6f8d67df77-tq8z2",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "kubernetes-dashboard",
+          "usage": {
+            "cpu": "0",
+            "memory": "38808Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "iserver-config-f9b7d85f5-4h26d",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/iserver-config-f9b7d85f5-4h26d",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "iserver-config",
+          "usage": {
+            "cpu": "1m",
+            "memory": "374004Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "iserver-servicelist-54547dc86d-2xc7v",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/iserver-servicelist-54547dc86d-2xc7v",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "iserver-servicelist",
+          "usage": {
+            "cpu": "1m",
+            "memory": "497416Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "kube-state-metrics-7ff796d679-4vfz4",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/kube-state-metrics-7ff796d679-4vfz4",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "kube-state-metrics",
+          "usage": {
+            "cpu": "5m",
+            "memory": "51592Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "iportal-mysql-85f45c8558-t4nvs",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/iportal-mysql-85f45c8558-t4nvs",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "iportal-mysql",
+          "usage": {
+            "cpu": "3m",
+            "memory": "924844Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "k8s4cloud-deploy-55cf8958b4-4956w",
+        "namespace": "cloud-ns",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/cloud-ns/pods/k8s4cloud-deploy-55cf8958b4-4956w",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "k8s4cloud",
+          "usage": {
+            "cpu": "2m",
+            "memory": "288484Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "mongodb-2",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/mongodb-2",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "mongodb",
+          "usage": {
+            "cpu": "23m",
+            "memory": "91880Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "rabbitmq-7b878d564f-7vc5p",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/rabbitmq-7b878d564f-7vc5p",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "rabbitmq",
+          "usage": {
+            "cpu": "93m",
+            "memory": "239496Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "ispeco-dashboard-ui-5f585544d4-v82rt",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/ispeco-dashboard-ui-5f585544d4-v82rt",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "ispeco-dashboard-ui",
+          "usage": {
+            "cpu": "0",
+            "memory": "44200Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "kube-apiserver-master",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-apiserver-master",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "kube-apiserver",
+          "usage": {
+            "cpu": "89m",
+            "memory": "438732Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "nginx-ingress-controller-675d4cd7d9-n9v9m",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/nginx-ingress-controller-675d4cd7d9-n9v9m",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "nginx-ingress-controller",
+          "usage": {
+            "cpu": "15m",
+            "memory": "529624Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "elasticsearch-7bc7f85d9d-px6rh",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/elasticsearch-7bc7f85d9d-px6rh",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "elasticsearch",
+          "usage": {
+            "cpu": "67m",
+            "memory": "3015856Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "iportal-58fbcbf968-hjj9p",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/iportal-58fbcbf968-hjj9p",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "iportal",
+          "usage": {
+            "cpu": "20m",
+            "memory": "1705656Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "ispeco-phpmyadmin-bff947d56-cw2lw",
+        "namespace": "icloud-native-2",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/icloud-native-2/pods/ispeco-phpmyadmin-bff947d56-cw2lw",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "ispeco-phpmyadmin",
+          "usage": {
+            "cpu": "0",
+            "memory": "46640Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "kube-controller-manager-master",
+        "namespace": "kube-system",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-controller-manager-master",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "kube-controller-manager",
+          "usage": {
+            "cpu": "31m",
+            "memory": "91200Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "prometheus-node-exporter-2mzrv",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/prometheus-node-exporter-2mzrv",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "prometheus-node-exporter",
+          "usage": {
+            "cpu": "9m",
+            "memory": "56936Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "testpod-rc-99nqh",
+        "namespace": "cloud-ns",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/cloud-ns/pods/testpod-rc-99nqh",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "testpod",
+          "usage": {
+            "cpu": "1m",
+            "memory": "125252Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "fluentd-es-7cw84",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/fluentd-es-7cw84",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "fluentd-es",
+          "usage": {
+            "cpu": "4m",
+            "memory": "189548Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "k8s4cloud-deploy-55cf8958b4-scdw6",
+        "namespace": "cloud-ns",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/cloud-ns/pods/k8s4cloud-deploy-55cf8958b4-scdw6",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "k8s4cloud",
+          "usage": {
+            "cpu": "3m",
+            "memory": "281296Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "keycloak-68ff84649b-xsgmb",
+        "namespace": "supermap",
+        "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/supermap/pods/keycloak-68ff84649b-xsgmb",
+        "creationTimestamp": "2020-06-28T08:22:40Z"
+      },
+      "timestamp": "2020-06-28T08:22:00Z",
+      "window": "1m0s",
+      "containers": [
+        {
+          "name": "keycloak",
+          "usage": {
+            "cpu": "1m",
+            "memory": "495352Ki"
+          }
+        }
+      ]
     }
-  }
+  ]
 }
+

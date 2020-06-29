@@ -125,7 +125,6 @@ class KubeController(
 
     @GetMapping("/watchAll", produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
     fun watchAll(): Flux<String>  {
-
         return Flux.create<String> (watchAllService::addSink).doFinally{
             log.info("doFinally watchAll")
         }
@@ -356,9 +355,6 @@ class KubeController(
 
     @GetMapping("/ResourcequotaAllns")
     fun resourcequotaAllns(): List<Any> = ResourceQuota().listAll()
-
-
-
 
 
     @GetMapping("/namespace/{ns}/{kind}")

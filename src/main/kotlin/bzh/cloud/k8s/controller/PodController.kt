@@ -72,33 +72,12 @@ class PodController(
             log.info("doFinally watch pod ns:{}",ns)
         }
     }
-    //stable log
-    //@GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-    fun log(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
-
-        val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
-                Int.MAX_VALUE, null, false, Int.MAX_VALUE, 100, false)
-
-        val logs = PodLogs()
-
-        return Flux.interval(Duration.ofSeconds(2))
-                .map {
-                    log.info("/watch/log repeat")
-                    val clog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
-                            null, null, false, 2, 10, false)
-                    if (it == 0L) firstlog else if (StringUtils.isEmpty(clog)) "" else clog
-                }.doFinally {
-                    log.info("log stream close!!")
-                }
-    }
 
     @GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
     fun logcurl(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
-        val firstlog = kubeApi.readNamespacedPodLog(pname, ns, if (cname == "undefined") null else cname, false,
-                Int.MAX_VALUE, null, false, Int.MAX_VALUE, 20, false)
+        val (client, _) = bzh.cloud.k8s.config.watchClient()
         return Flux.create { sink->
-            sink.next(firstlog)
+            //sink.next(firstlog)
             var eve :CurlEvent?=null
             eve = curl {
                 client { client.httpClient }
