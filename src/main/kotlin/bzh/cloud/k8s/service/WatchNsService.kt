@@ -4,31 +4,24 @@ package bzh.cloud.k8s.service
 import bzh.cloud.k8s.config.ClientUtil
 import bzh.cloud.k8s.expansion.CurlEvent
 import bzh.cloud.k8s.expansion.curl
-
 import io.kubernetes.client.openapi.ApiClient
-
 import kotlinx.coroutines.*
 import okhttp3.Response
+import org.apache.commons.collections4.map.MultiKeyMap
 
 import org.json.JSONObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import reactor.core.publisher.FluxSink
-import java.util.*
-
 import java.util.concurrent.Executors
-import kotlin.collections.HashMap
-import kotlin.collections.HashSet
 
 
 @Service
 @EnableScheduling
-class WatchAllService(
+class WatchNsService(
         val atomicThread: ExecutorCoroutineDispatcher
 
 ) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
@@ -40,9 +33,10 @@ class WatchAllService(
     }
 
     val heartbeat = """{"type":"HEARTBEAT"}"""
-    private val dispatcherSink = Collections.synchronizedSet(HashSet<FluxSink<String>>())
+
+    private val dispatcherSink = HashSet< Pair<FluxSink<String>,String>>()
     private val curlEventMap = HashMap<String, CurlEvent>()
-    private val cache = HashMap<String, String>(2000)
+    private val cache = MultiKeyMap<String,String>();
 
     val urlMap = mapOf<String, String>(
             "Node" to "/api/v1/nodes", //no
@@ -99,12 +93,13 @@ class WatchAllService(
         val apiClient = ClientUtil.apiClient()
         val count1 =  apiClient.httpClient.connectionPool().connectionCount()
         log.info("apiClient connectionPool {}",count1)
-        val removeSink = HashSet<FluxSink<String>>()
+        val removeSink =  HashSet< Pair<FluxSink<String>,String>>()
         dispatcherSink.forEach {
-            if (it.isCancelled) {
+
+            if (it.first.isCancelled) {
                 removeSink.add(it)
             }
-            it.next(heartbeat)
+            it.first.next(heartbeat)
         }
         dispatcherSink.removeAll(removeSink)
         log.info("dispatcherSink.size:{}",dispatcherSink.size)
@@ -128,16 +123,20 @@ class WatchAllService(
         metricsPod()
     }
 
-    fun addSink(sink: FluxSink<String>) {
+    fun addSink(sink: FluxSink<String>,ns:String) {
         log.info("addSink")
         launch {
             withContext(atomicThread) {
                 log.info("sink heartbeat")
                 sink.next(heartbeat)
                 log.info("before sink cache")
-                cache.values.forEach { sink.next(it) }
+                cache.forEach{key,value->
+                    if(key.getKey(0) == ns){
+                        sink.next(value);
+                    }
+                }
                 log.info("after sink cache")
-                dispatcherSink.add(sink)
+                dispatcherSink.add(Pair(sink,ns))
                 log.info("dispatcherSink added")
                 metricsNodes()
                 metricsPod()
@@ -146,13 +145,14 @@ class WatchAllService(
         }
     }
 
-    fun addCache(uid: String, json: String, deleteFlag: Boolean, name: String = "", kind: String = "") {
+    fun addCache(uid: String,ns :String?, json: String, deleteFlag: Boolean, name: String = "", kind: String = "") {
         launch {
             withContext(atomicThread) {
                 if (deleteFlag) {
-                    cache.remove(uid)
+                    cache.removeAll(ns,uid)
+
                 } else {
-                    cache.put(uid, json)
+                    cache.put(ns,uid,json)
                 }
                 log.info("addCache deleteFlag:{},kind:{},name:{} cache-size:{}", deleteFlag, kind, name, cache.size)
             }
@@ -178,17 +178,23 @@ class WatchAllService(
                     }
                     val json = JSONObject(line)
                     val type = json.getString("type")
-                    val uid = json.getJSONObject("object").getJSONObject("metadata").getString("uid")
-                    val name = json.getJSONObject("object").getJSONObject("metadata").getString("name")
+                    val objJson = json.getJSONObject("object");
+                    val metadataJson = objJson.getJSONObject("metadata")
+                    val uid = metadataJson.getString("uid")
+                    val name = metadataJson.getString("name")
+                    var ns  =""
+                    if(metadataJson.has("namespace")){
+                        ns = metadataJson.getString("namespace")
+                    }
                     val kind = json.getJSONObject("object").getString("kind")
                     //log.info("watch {},name:{}",kind,name)
                     var deleteFlag = false
                     if (type == "DELETED") {
                         deleteFlag = true
                     }
-                    addCache(uid, line, deleteFlag, name, kind)
+                    addCache(uid,ns,line, deleteFlag, name, kind)
                     json.put("notCache", true)
-                    dispatcherSink.forEach { it.next(json.toString()) }
+                    dispatcherSink.forEach { it.first.next(json.toString()) }
                 }
             }
         } as CurlEvent
@@ -207,7 +213,7 @@ class WatchAllService(
             }  as Response
             val str = response.body()?.string()!!
             //log.info(str)
-            dispatcherSink.forEach { it.next(str) }
+            dispatcherSink.forEach { it.first.next(str) }
         }
 
     }
@@ -224,7 +230,7 @@ class WatchAllService(
             } as Response
             val str = response.body()?.string()!!
             //log.info(str)
-            dispatcherSink.forEach { it.next(str) }
+            dispatcherSink.forEach { it.first.next(str) }
         }
     }
 }

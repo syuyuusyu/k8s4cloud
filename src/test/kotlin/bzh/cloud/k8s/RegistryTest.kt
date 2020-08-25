@@ -412,28 +412,8 @@ class RegistryTest {
 
 
 
-    @Test
-    fun test14(){
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
-        val call =      api.listPodForAllNamespacesCall(null, null, null, null, null, null,
-                null, null, java.lang.Boolean.TRUE, null)
-        val response = call.execute()
-        println(1111)
-    }
 
 
-    @Test
-    fun kubelog(){
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
-        val logs = PodLogs(client)
-        //val pods = api.listNamespacedPod("test2",null,null,null,null,null,null,null,null,false)
-        val pod = api.readNamespacedPod("testpod","test2",null,null,null)
-        //log.info("{}",pod)
-
-        val ss = JsonUtil.beanToJson(pod)
-        println(ss)
-
-    }
 
 
 

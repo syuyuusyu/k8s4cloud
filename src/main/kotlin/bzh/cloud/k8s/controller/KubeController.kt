@@ -1,13 +1,15 @@
 package bzh.cloud.k8s.controller
 
 
+import bzh.cloud.k8s.config.ClientUtil
 import bzh.cloud.k8s.config.CmContext
 
-import bzh.cloud.k8s.config.UpdateClient
+
 import bzh.cloud.k8s.expansion.curl
 import bzh.cloud.k8s.expansion.metricsNode
 import bzh.cloud.k8s.service.ConfigMapService
 import bzh.cloud.k8s.service.WatchAllService
+import bzh.cloud.k8s.service.WatchNsService
 import bzh.cloud.k8s.service.WatchService
 import com.fasterxml.jackson.core.type.TypeReference
 import io.kubernetes.client.custom.V1Patch
@@ -28,41 +30,44 @@ import io.kubernetes.client.openapi.models.*
 import kotlinx.coroutines.*
 import okhttp3.Response
 import org.json.JSONObject
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpResponse
 import reactor.core.publisher.Flux
 import java.util.concurrent.Executor
 
-class NsWithQuota{
+class NsWithQuota {
     var name = ""
-    var quotaCpu =""
-    var quotaMemory=""
+    var quotaCpu = ""
+    var quotaMemory = ""
     var quotaPods = 0
-    var limitCpu =""
-    var limitMemory =""
+    var limitCpu = ""
+    var limitMemory = ""
     var defaultCpu = ""
-    var defaultMemory =""
-    var defaultRequestCpu =""
-    var defaultRequestMemory =""
+    var defaultMemory = ""
+    var defaultRequestCpu = ""
+    var defaultRequestMemory = ""
     var minCpu = ""
-    var minMemory =""
+    var minMemory = ""
 }
 
 
 @RestController
 @RequestMapping("/kube")
 class KubeController(
-        val kubeApi: CoreV1Api,
-        val apiClient : ApiClient,
-        val extensionApi: ExtensionsV1beta1Api,
         val configMapService: ConfigMapService,
-        val threadPool : Executor,
+        val threadPool: Executor,
         val watchService: WatchService,
-        val watchAllService: WatchAllService
-): CoroutineScope by CoroutineScope(Dispatchers.Default) {
+        val watchAllService: WatchAllService,
+        val watchNsService: WatchNsService
+) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
     @Value("\${self.kubeConfigPath}")
     lateinit var kubeConfigPath: String
+
+
+
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(KubeController::class.java)
@@ -84,62 +89,70 @@ class KubeController(
     }
 
 
-
     private fun createNsifNotExist(ns: String) {
         if (ns == "null") return
         if (!NameSpace().nameExists(ns)) {
             val nsobj = V1NamespaceBuilder().withNewMetadata().withName(ns).endMetadata().build()
-            kubeApi.createNamespace(nsobj, "false", null, null)
+            ClientUtil.kubeApi().createNamespace(nsobj, "false", null, null)
         }
     }
 
     @GetMapping("/api")
-    fun  api() :String {
-        //apiClient.setDebugging(false)
-        val (client, _) = bzh.cloud.k8s.config.watchClient()
-        val response =  curl {
-            client { client.httpClient }
+    fun api(): String {
+        val apiClient = ClientUtil.apiClient()
+        val response = curl {
+            client { apiClient.httpClient }
             request {
-               url("${client.basePath}/openapi/v2")
+                url("${apiClient.basePath}/openapi/v2")
             }
 
-        }as Response
+        } as Response
         return response.body()?.string()!!
     }
 
     @GetMapping("/api/definitions")
-    fun  definitions() :String {
-        //apiClient.setDebugging(false)
-        val (client, _) = bzh.cloud.k8s.config.watchClient()
-        val response =  curl {
-            client { client.httpClient }
+    fun definitions(): String {
+        val apiClient = ClientUtil.apiClient()
+        val response = curl {
+            client { apiClient.httpClient }
             request {
-                url("${client.basePath}/openapi/v2")
+                url("${apiClient.basePath}/openapi/v2")
             }
 
-        }as Response
-        val str =  response.body()?.string()!!
+        } as Response
+        val str = response.body()?.string()!!
         val json = JSONObject(str)
         return json.getJSONObject("definitions").toString(0)
     }
 
     @GetMapping("/watchAll", produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
-    fun watchAll(): Flux<String>  {
-        return Flux.create<String> (watchAllService::addSink).doFinally{
+    fun watchAll(): Flux<String> {
+        log.info("watchAll controller")
+        return Flux.create<String>(watchAllService::addSink).doFinally {
+            log.info("doFinally watchAll")
+        }
+    }
+
+    @GetMapping("/watchNs/{ns}", produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
+    fun watchNs(@PathVariable ns: String): Flux<String> {
+        log.info("watchAll controller")
+        return Flux.create<String>{ watchNsService.addSink(it,ns)}.doFinally {
             log.info("doFinally watchAll")
         }
     }
 
     @GetMapping("/watch/allResourcequota", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun watchlist(response: ServerHttpResponse):Flux<V1ResourceQuota>  {
-        return Flux.create<V1ResourceQuota> { watchService.addQuotaSink(it)}.doFinally{
+    fun watchlist(response: ServerHttpResponse): Flux<V1ResourceQuota> {
+        return Flux.create<V1ResourceQuota> { watchService.addQuotaSink(it) }.doFinally {
             log.info("/watch/allResourcequota complete")
 
         }
     }
 
     @GetMapping("/namespace")
-    fun nameSpaceList(): List<String> = NameSpace().listname()
+    fun nameSpaceList(): List<String> {
+        return NameSpace().listname()
+    }
 
     @GetMapping("/allnamespace")
     fun allnamespace(): List<String> = NameSpace().listname() + NameSpace().filterList
@@ -170,7 +183,7 @@ class KubeController(
                     "cpu" to Quantity(body.limitCpu),
                     "memory" to Quantity(body.limitMemory))
             val quota = ResourceQuota().rawList().items.find { it.metadata?.name == "quota-$ns" }
-            val limit = LimitRange().rawList().items.find { it.metadata?.name == "range-$ns" }
+            val limit = LimitRange().rawList().items.find { it.metadata?.name == "limits-$ns" }
 
             if (quota == null) {
                 ResourceQuota().buildQuota(ns, quotaMap)
@@ -194,7 +207,7 @@ class KubeController(
                         "memory" to Quantity(body.minMemory))
             }
             if (limit == null) {
-                LimitRange().buildRange(ns, limitMap,minMap,defaultMap,defaultRequestMap)
+                LimitRange().buildRange(ns, limitMap, minMap, defaultMap, defaultRequestMap)
             } else {
                 limit.spec?.limits?.get(0)?.max = limitMap
                 defaultMap?.let { limit.spec?.limits?.get(0)?.default = it }
@@ -232,9 +245,9 @@ class KubeController(
             }
         }.map { ns ->
             val quota = quotaList.items.find { it.metadata?.namespace == ns }
-                    //?: Resourcequota().buildQuota(ns, quotaMap)
+            //?: Resourcequota().buildQuota(ns, quotaMap)
             val limitRange = limitrangeList.items.find { it.metadata?.namespace == ns }
-                    //?: LimitRange().buildRange(ns, limitMap)
+            //?: LimitRange().buildRange(ns, limitMap)
             NsWithQuota().apply {
                 try {
                     this.name = ns
@@ -262,6 +275,7 @@ class KubeController(
 
     @GetMapping("/node")
     fun nodes(): List<V1Node> {
+        val kubeApi = ClientUtil.kubeApi()
         val result = kubeApi.listNode("", false,
                 null, "", null, null, null, 0, false)
         return result.items
@@ -269,6 +283,7 @@ class KubeController(
 
     @GetMapping("/metrics/runingstatus/{ns}")
     fun runingstatus(@PathVariable ns: String): Map<String, Any?> {
+        val kubeApi = ClientUtil.kubeApi()
         val podlist = kubeApi.listNamespacedPod(ns, null, null, null, null,
                 null, null, null, 0, false).items
         val deployList = Deployment().rawList(ns)
@@ -300,6 +315,7 @@ class KubeController(
 
     @GetMapping("/metrics")
     fun metrics(): List<HashMap<String, Any?>>? {
+        val kubeApi = ClientUtil.kubeApi()
         val metlist = kubeApi.metricsNode()
         val podList = kubeApi.listPodForAllNamespaces(false, null, null, null,
                 null, null, null, 0, false).items
@@ -308,6 +324,7 @@ class KubeController(
         //val a = nodelist.items?.map { it.status?.capacity?.get("cpu")?.number }
         //log.info("a:{}",a?.size)
         val allcpu = nodelist.items?.map { it.status?.capacity?.get("cpu")?.number }?.reduce { acc, i -> acc?.add(i) }
+        val allPod = nodelist.items?.map { it.status?.capacity?.get("pods")?.number }?.reduce { acc, i -> acc?.add(i) }
 
         val b = nodelist.items?.map { it.status?.capacity?.get("memory")?.number }
         //log.info("b:{}",b?.size)
@@ -343,10 +360,9 @@ class KubeController(
                 this["cpu"] = Quantity(allcpu, Quantity.Format.DECIMAL_SI).number
                 this["memory"] = Quantity(allmemory, Quantity.Format.BINARY_SI).number
                 this["memoryunit"] = Quantity(allmemory, Quantity.Format.BINARY_SI)
-                this["pods"] = nodeItem?.status?.allocatable?.get("pods")?.toSuffixedString()
+                this["pods"] = allPod
             }
-
-
+            
             map["capacity"] = nodeItem?.status?.capacity
             map["allocatable"] = nodeItem?.status?.allocatable
             map
@@ -463,26 +479,26 @@ class KubeController(
         "PersistentVolumeClaim" -> delete(ns, name, PersistentVolumeClaim()::delete)
         "Deployment" -> delete(ns, name, Deployment()::delete)
         "ConfigMap" -> delete(ns, name, configMapService::delete)
-        "ReplicaSet" -> delete(ns,name ,ReplicaSet()::delete)
-        "DaemonSet" -> delete(ns,name ,DaemonSet()::delete)
-        "ReplicationController" -> delete(ns,name ,ReplicationController()::delete)
-        "StatefulSet" -> delete(ns,name ,StatefulSet()::delete)
-        "Job" -> delete(ns,name ,Job()::delete)
-        "CronJob" -> delete(ns,name ,CronJob()::delete)
-        "Secret" -> delete(ns,name ,Secret()::delete)
-        "ServiceAccount" -> delete(ns,name ,ServiceAccount()::delete)
-        "V1HorizontalPodAutoscaler" -> delete(ns,name ,HorizontalPodAutoscaler()::delete)
-        "Role" -> delete(ns,name ,Role()::delete)
-        "RoleBinding" -> delete(ns,name ,RoleBinding()::delete)
-        "ClusterRole" -> delete(ns,name ,ClusterRole()::delete)
-        "ClusterRoleBinding" -> delete(ns,name ,ClusterRoleBinding()::delete)
-        "LimitRange" -> delete(ns,name ,LimitRange()::delete)
-        "ResourceQuota" -> delete(ns,name ,ResourceQuota()::delete)
+        "ReplicaSet" -> delete(ns, name, ReplicaSet()::delete)
+        "DaemonSet" -> delete(ns, name, DaemonSet()::delete)
+        "ReplicationController" -> delete(ns, name, ReplicationController()::delete)
+        "StatefulSet" -> delete(ns, name, StatefulSet()::delete)
+        "Job" -> delete(ns, name, Job()::delete)
+        "CronJob" -> delete(ns, name, CronJob()::delete)
+        "Secret" -> delete(ns, name, Secret()::delete)
+        "ServiceAccount" -> delete(ns, name, ServiceAccount()::delete)
+        "V1HorizontalPodAutoscaler" -> delete(ns, name, HorizontalPodAutoscaler()::delete)
+        "Role" -> delete(ns, name, Role()::delete)
+        "RoleBinding" -> delete(ns, name, RoleBinding()::delete)
+        "ClusterRole" -> delete(ns, name, ClusterRole()::delete)
+        "ClusterRoleBinding" -> delete(ns, name, ClusterRoleBinding()::delete)
+        "LimitRange" -> delete(ns, name, LimitRange()::delete)
+        "ResourceQuota" -> delete(ns, name, ResourceQuota()::delete)
         else -> HashMap()
     }
 
     //@PostMapping("/namespace/{ns}/{kind}")
-    fun post(@PathVariable kind: String, @PathVariable ns: String,@RequestBody body: Any):Map<String, Any> = when (kind){
+    fun post(@PathVariable kind: String, @PathVariable ns: String, @RequestBody body: Any): Map<String, Any> = when (kind) {
         "PersistentVolume" -> create { PersistentVolume().create(body as V1PersistentVolume) }
         else -> HashMap()
     }
@@ -599,6 +615,7 @@ class KubeController(
 
     inner class Event {
         fun list(ns: String): List<V1Event> {
+            val kubeApi = ClientUtil.kubeApi()
             return kubeApi.listNamespacedEvent(ns, null, null, null, null,
                     null, null, null, null, null).items
                     .sortedBy { it.metadata?.creationTimestamp }.reversed()
@@ -608,12 +625,16 @@ class KubeController(
     inner class NameSpace {
         val filterList = arrayOf("default", "kube-public", "kube-system")
         fun list(): List<V1Namespace> {
-            return kubeApi.listNamespace("false", false, null, null, null,
+            val kubeApi = ClientUtil.kubeApi()
+            log.info("allnamespace,kubeApi,{}",kubeApi)
+            val list = kubeApi.listNamespace("false", false, null, null, null,
                     null, null, null, null).items
                     .sortedBy { it.metadata?.creationTimestamp }.reversed()
                     .filter {
                         it.metadata?.name !in filterList && it.status?.phase != "Terminating"
                     }
+            log.info("allnamespace,{}",list.size)
+            return list
         }
 
         fun listname(): List<String> {
@@ -642,6 +663,7 @@ class KubeController(
         }
 
         fun delete(ns: String) {
+            val kubeApi = ClientUtil.kubeApi()
             kubeApi.deleteNamespace(ns, null, null, null, null, null, null)
             try {
                 //Thread.sleep(5000)
@@ -663,7 +685,7 @@ class KubeController(
         }
 
         fun buildQuota(ns: String, hard: Map<String, Quantity>): V1ResourceQuota {
-
+            val kubeApi = ClientUtil.kubeApi()
             return V1ResourceQuotaBuilder()
                     .withNewMetadata().withName("quota-$ns").endMetadata()
                     .withNewSpec().addToHard(hard).endSpec().build().apply {
@@ -673,6 +695,7 @@ class KubeController(
         }
 
         fun listAll(): List<Any> {
+            val kubeApi = ClientUtil.kubeApi()
             val podNum = kubeApi.listPodForAllNamespaces(false, null, null, null,
                     null, null, null, 0, false).items.size
             return kubeApi.listResourceQuotaForAllNamespaces(false, null, "",
@@ -681,6 +704,7 @@ class KubeController(
         }
 
         fun list(ns: String): List<Any> {
+            val kubeApi = ClientUtil.kubeApi()
             val podNum = kubeApi.listNamespacedPod(ns, null, null, null, null,
                     null, null, null, 0, false).items.size
             return kubeApi.listNamespacedResourceQuota(ns, null, null, "",
@@ -688,46 +712,47 @@ class KubeController(
                     .map { buildMap(it, podNum) }
         }
 
-        fun rawList(): V1ResourceQuotaList = kubeApi.listResourceQuotaForAllNamespaces(null, null, "",
+        fun rawList(): V1ResourceQuotaList =   ClientUtil.kubeApi().listResourceQuotaForAllNamespaces(null, null, "",
                 "", null, null, null, 0, false)
 
         fun read(ns: String, name: String): V1ResourceQuota {
-            val q = kubeApi.readNamespacedResourceQuota(name, ns, null, true, null)
+            val q = ClientUtil.kubeApi().readNamespacedResourceQuota(name, ns, null, true, null)
             return q
         }
 
         fun create(ns: String, quota: V1ResourceQuota) {
-            kubeApi.createNamespacedResourceQuota(ns, quota, null, null, null)
+            ClientUtil.kubeApi().createNamespacedResourceQuota(ns, quota, null, null, null)
         }
 
         fun update(quota: V1ResourceQuota) {
-            UpdateClient().replaceNamespacedResourceQuota(quota.metadata?.name, quota.metadata?.namespace, quota, null, null, null)
+            CoreV1Api(ClientUtil.updateClient()).replaceNamespacedResourceQuota(quota.metadata?.name, quota.metadata?.namespace, quota, null, null, null)
         }
+
         fun delete(ns: String, name: String) {
-            kubeApi.deleteNamespacedResourceQuota(name, ns, "false", null, null, null, null, null)
+            ClientUtil.kubeApi().deleteNamespacedResourceQuota(name, ns, "false", null, null, null, null, null)
         }
     }
 
     inner class LimitRange {
         fun read(ns: String, name: String): V1LimitRange {
-            val l = kubeApi.readNamespacedLimitRange(name, ns, null, true, true)
+            val l = ClientUtil.kubeApi().readNamespacedLimitRange(name, ns, null, true, true)
             return l
         }
 
-        fun rawList() = kubeApi.listLimitRangeForAllNamespaces(null, null,
+        fun rawList() = ClientUtil.kubeApi().listLimitRangeForAllNamespaces(null, null,
                 null, null, null, null, null, 0, false)
 
         fun create(ns: String, limit: V1LimitRange) {
-            kubeApi.createNamespacedLimitRange(ns, limit, null, null, null)
+            ClientUtil.kubeApi().createNamespacedLimitRange(ns, limit, null, null, null)
         }
 
         fun update(limit: V1LimitRange) {
             log.info("sdsd:{}", limit)
-            UpdateClient().replaceNamespacedLimitRange(limit.metadata?.name, limit.metadata?.namespace, limit, null, null, null)
+            CoreV1Api(ClientUtil.updateClient()).replaceNamespacedLimitRange(limit.metadata?.name, limit.metadata?.namespace, limit, null, null, null)
         }
 
         fun delete(ns: String, name: String) {
-            kubeApi.deleteNamespacedLimitRange(name, ns, "false", null, null, null, null, null)
+            ClientUtil.kubeApi().deleteNamespacedLimitRange(name, ns, "false", null, null, null, null, null)
         }
 
         fun buildRange(ns: String, limit: Map<String, Quantity>,
@@ -737,438 +762,389 @@ class KubeController(
         ): V1LimitRange {
 
             return V1LimitRangeBuilder()
-                    .withNewMetadata().withName("range-$ns").endMetadata()
+                    .withNewMetadata().withName("limits-$ns").endMetadata()
                     .withNewSpec().addNewLimit()
                     .addToMax(limit).addToDefault(default).addToMin(min).addToDefaultRequest(defaultRequest)
                     .withNewType("Container")
                     .endLimit().endSpec().build().apply {
                         log.info("create new default limitRange in ns:{}", ns)
-                        kubeApi.createNamespacedLimitRange(ns, this, null, null, null)
+                        ClientUtil.kubeApi().createNamespacedLimitRange(ns, this, null, null, null)
                     }
         }
     }
 
     inner class Service {
         fun update(service: V1Service) {
-            UpdateClient().replaceNamespacedServiceWithHttpInfo(service.metadata?.name, service.metadata?.namespace, service,
+            CoreV1Api(ClientUtil.updateClient()).replaceNamespacedServiceWithHttpInfo(service.metadata?.name, service.metadata?.namespace, service,
                     "true", null, null)
 
         }
 
         fun list(ns: String): List<Any> {
-            return kubeApi.listNamespacedService(ns, "true",
+            return ClientUtil.kubeApi().listNamespacedService(ns, "true",
                     null, null, null, null, null, null, 0, false)
                     .items
         }
 
         fun read(ns: String, name: String): V1Service {
-            val a = kubeApi.readNamespacedService(name, ns, "false", null, null)
+            val a = ClientUtil.kubeApi().readNamespacedService(name, ns, "false", null, null)
             return a
         }
 
         fun delete(ns: String, name: String) {
-            kubeApi.deleteNamespacedServiceWithHttpInfo(name, ns, "false", null, null, null, null, null)
+            ClientUtil.kubeApi().deleteNamespacedServiceWithHttpInfo(name, ns, "false", null, null, null, null, null)
         }
 
         fun create(ns: String, service: V1Service) {
-            kubeApi.createNamespacedService(ns, service, "false", null, null)
+            ClientUtil.kubeApi().createNamespacedService(ns, service, "false", null, null)
         }
     }
 
     inner class Ingress {
         fun list(ns: String): List<Any> {
-            return extensionApi.listNamespacedIngress(ns, "false",
+            return ExtensionsV1beta1Api(ClientUtil.apiClient()).listNamespacedIngress(ns, "false",
                     null, null, null, null, null, null, 0, false)
                     .items
 
         }
 
         fun read(ns: String, name: String): ExtensionsV1beta1Ingress {
-            var a = extensionApi.readNamespacedIngress(name, ns, "true", null, null)
+            var a = ExtensionsV1beta1Api(ClientUtil.apiClient()).readNamespacedIngress(name, ns, "true", null, null)
             return a
         }
 
         fun update(ingress: ExtensionsV1beta1Ingress) {
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            ExtensionsV1beta1Api(client)
+            ExtensionsV1beta1Api(ClientUtil.updateClient())
                     .replaceNamespacedIngressWithHttpInfo(ingress.metadata?.name, ingress.metadata?.namespace, ingress,
                             "true", null, null)
         }
 
         fun delete(ns: String, name: String) {
-            extensionApi
+            ExtensionsV1beta1Api(ClientUtil.apiClient())
                     .deleteNamespacedIngressWithHttpInfo(name, ns, "true", null, null, null, null, null)
         }
 
         fun create(ns: String, ingress: ExtensionsV1beta1Ingress) {
-            extensionApi.createNamespacedIngressWithHttpInfo(ns, ingress, "true", null, null)
+            ExtensionsV1beta1Api(ClientUtil.apiClient()).createNamespacedIngressWithHttpInfo(ns, ingress, "true", null, null)
         }
     }
 
     inner class PersistentVolume {
         fun list(): List<Any> {
-            return kubeApi.listPersistentVolume("true",
+            return ClientUtil.kubeApi().listPersistentVolume("true",
                     null, null, "", null, null, null, 0, false)
                     .items
         }
 
         fun read(name: String): V1PersistentVolume {
-            val a = kubeApi.readPersistentVolume(name, "ture", null, null)
+            val a = ClientUtil.kubeApi().readPersistentVolume(name, "ture", null, null)
             return a
         }
 
         fun update(persistentVolume: V1PersistentVolume) {
-            UpdateClient()
+            CoreV1Api(ClientUtil.updateClient())
                     .replacePersistentVolumeWithHttpInfo(persistentVolume.metadata?.name, persistentVolume,
                             "true", null, null)
         }
 
         fun delete(name: String) {
-            kubeApi.deletePersistentVolumeWithHttpInfo(name, "true", null, null, null, null, null)
+            ClientUtil.kubeApi().deletePersistentVolumeWithHttpInfo(name, "true", null, null, null, null, null)
         }
 
         fun create(persistentVolume: V1PersistentVolume) {
-            kubeApi.createPersistentVolumeWithHttpInfo(persistentVolume, "true", null, null)
+            ClientUtil.kubeApi().createPersistentVolumeWithHttpInfo(persistentVolume, "true", null, null)
         }
     }
 
     inner class PersistentVolumeClaim {
-        fun rawList(ns: String) = kubeApi.listNamespacedPersistentVolumeClaim(ns, "true",
+        fun rawList(ns: String) = ClientUtil.kubeApi().listNamespacedPersistentVolumeClaim(ns, "true",
                 null, null, null, null, null, null, 0, false)
                 .items
 
         fun list(ns: String): List<Any> {
             return rawList(ns)
-//                    .map {
-//                        var map = HashMap<String, Any?>()
-//                        map["name"] = it.metadata?.name
-//                        map["ns"] = it.metadata?.namespace
-//                        map["labels"] = it.metadata?.labels
-//                        map["uid"] = it.metadata?.uid
-//                        map
-//                    }
         }
 
         fun read(ns: String, name: String): V1PersistentVolumeClaim {
-            val a = kubeApi.readNamespacedPersistentVolumeClaim(name, ns, "true", null, null)
+            val a = ClientUtil.kubeApi().readNamespacedPersistentVolumeClaim(name, ns, "true", null, null)
             return a
         }
 
         fun update(persistentVolumeClaim: V1PersistentVolumeClaim) {
-            UpdateClient()
+            CoreV1Api(ClientUtil.updateClient())
                     .replaceNamespacedPersistentVolumeClaimWithHttpInfo(persistentVolumeClaim.metadata?.name,
                             persistentVolumeClaim.metadata?.namespace, persistentVolumeClaim,
                             "true", null, null)
         }
 
         fun delete(ns: String, name: String) {
-            kubeApi.deleteNamespacedPersistentVolumeClaimWithHttpInfo(name, ns, "true", null, null, null, null, null)
+            ClientUtil.kubeApi().deleteNamespacedPersistentVolumeClaimWithHttpInfo(name, ns, "true", null, null, null, null, null)
         }
 
         fun create(ns: String, persistentVolumeClaim: V1PersistentVolumeClaim) {
-            kubeApi.createNamespacedPersistentVolumeClaimWithHttpInfo(ns, persistentVolumeClaim, "true", null, null)
+            ClientUtil.kubeApi().createNamespacedPersistentVolumeClaimWithHttpInfo(ns, persistentVolumeClaim, "true", null, null)
         }
     }
 
     inner class Deployment {
 
-        fun rawList(ns: String) =   AppsV1Api(apiClient).listNamespacedDeployment(ns, null,
+        fun rawList(ns: String) = AppsV1Api(ClientUtil.apiClient()).listNamespacedDeployment(ns, null,
                 null, null, null, null, null, null, 0, false)
                 .items
+
         fun list(ns: String): List<V1Deployment> {
             ///apis/apps/v1/namespaces/{namespace}/deployments
             return rawList(ns)
-
-
         }
 
         fun read(ns: String, name: String): V1Deployment {
-            val a =   AppsV1Api(apiClient).readNamespacedDeployment(name, ns, "true", null, null)
+            val a = AppsV1Api(ClientUtil.apiClient()).readNamespacedDeployment(name, ns, "true", null, null)
             return a
         }
 
         fun update(deployment: V1Deployment) {
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            AppsV1Api(client)
+            AppsV1Api(ClientUtil.updateClient())
                     .replaceNamespacedDeploymentWithHttpInfo(deployment.metadata?.name, deployment.metadata?.namespace, deployment,
                             "true", null, null)
         }
 
         fun delete(ns: String, name: String) {
-            AppsV1Api(apiClient)
+            AppsV1Api(ClientUtil.apiClient())
                     .deleteNamespacedDeploymentWithHttpInfo(name, ns, "true", null, null, null, null, null)
         }
 
         fun create(ns: String, deployment: V1Deployment) {
-            AppsV1Api(apiClient).createNamespacedDeploymentWithHttpInfo(ns, deployment, "true", null, null)
+            AppsV1Api(ClientUtil.apiClient()).createNamespacedDeploymentWithHttpInfo(ns, deployment, "true", null, null)
         }
     }
 
-    inner class ReplicaSet{
-        fun update(replicaSet:V1ReplicaSet) {
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            //AppsV1Api(client)
-            AppsV1Api(client)
-                    .replaceNamespacedReplicaSetWithHttpInfo(replicaSet.metadata?.name,replicaSet.metadata?.namespace,replicaSet,null,null,null)
+    inner class ReplicaSet {
+        fun update(replicaSet: V1ReplicaSet) {
+            AppsV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedReplicaSetWithHttpInfo(replicaSet.metadata?.name, replicaSet.metadata?.namespace, replicaSet, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            AppsV1Api(apiClient)
-                    .deleteNamespacedReplicaSet(name,ns,null,null,null,null,null,null)
+            AppsV1Api(ClientUtil.apiClient())
+                    .deleteNamespacedReplicaSet(name, ns, null, null, null, null, null, null)
 
         }
 
-        fun create(ns: String, replicaSet:V1ReplicaSet) {
-            AppsV1Api(apiClient).createNamespacedReplicaSetWithHttpInfo(ns,replicaSet,null,null,null)
+        fun create(ns: String, replicaSet: V1ReplicaSet) {
+            AppsV1Api(ClientUtil.apiClient()).createNamespacedReplicaSetWithHttpInfo(ns, replicaSet, null, null, null)
         }
     }
 
-    inner class DaemonSet{
+    inner class DaemonSet {
         fun update(daemonSet: V1DaemonSet) {
-
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            AppsV1Api(client)
-                    .replaceNamespacedDaemonSetWithHttpInfo(daemonSet.metadata?.name,daemonSet.metadata?.namespace,daemonSet,null,null,null)
+            AppsV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedDaemonSetWithHttpInfo(daemonSet.metadata?.name, daemonSet.metadata?.namespace, daemonSet, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            AppsV1Api(apiClient)
-                    .deleteNamespacedDaemonSet(name,ns,null,null,null,null,null,null)
+            AppsV1Api(ClientUtil.apiClient())
+                    .deleteNamespacedDaemonSet(name, ns, null, null, null, null, null, null)
 
         }
 
-        fun create(ns: String, daemonSet:V1DaemonSet) {
-            AppsV1Api(apiClient).createNamespacedDaemonSet(ns,daemonSet,null,null,null)
+        fun create(ns: String, daemonSet: V1DaemonSet) {
+            AppsV1Api(ClientUtil.apiClient()).createNamespacedDaemonSet(ns, daemonSet, null, null, null)
         }
 
     }
 
-    inner class ReplicationController{
+    inner class ReplicationController {
         fun update(rc: V1ReplicationController) {
-            UpdateClient()
-                    .replaceNamespacedReplicationControllerWithHttpInfo(rc.metadata?.name,rc.metadata?.namespace,rc,null,null,null)
+            CoreV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedReplicationControllerWithHttpInfo(rc.metadata?.name, rc.metadata?.namespace, rc, null, null, null)
         }
 
         fun delete(ns: String, name: String) {
-            kubeApi.deleteNamespacedReplicationControllerWithHttpInfo(name, ns, null, null, null, null, null, null)
+            ClientUtil.kubeApi().deleteNamespacedReplicationControllerWithHttpInfo(name, ns, null, null, null, null, null, null)
         }
 
         fun create(ns: String, rc: V1ReplicationController) {
-            kubeApi.createNamespacedReplicationControllerWithHttpInfo(ns, rc, null, null, null)
+            ClientUtil.kubeApi().createNamespacedReplicationControllerWithHttpInfo(ns, rc, null, null, null)
         }
     }
 
-    inner class StatefulSet{
+    inner class StatefulSet {
         fun update(daemonSet: V1StatefulSet) {
 
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            AppsV1Api(client)
-                    .replaceNamespacedStatefulSetWithHttpInfo(daemonSet.metadata?.name,daemonSet.metadata?.namespace,daemonSet,null,null,null)
+            AppsV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedStatefulSetWithHttpInfo(daemonSet.metadata?.name, daemonSet.metadata?.namespace, daemonSet, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            AppsV1Api(apiClient)
-                    .deleteNamespacedStatefulSet(name,ns,null,null,null,null,null,null)
+            AppsV1Api(ClientUtil.apiClient())
+                    .deleteNamespacedStatefulSet(name, ns, null, null, null, null, null, null)
 
         }
 
-        fun create(ns: String, daemonSet:V1StatefulSet) {
-            AppsV1Api(apiClient).createNamespacedStatefulSet(ns,daemonSet,null,null,null)
+        fun create(ns: String, daemonSet: V1StatefulSet) {
+            AppsV1Api(ClientUtil.apiClient()).createNamespacedStatefulSet(ns, daemonSet, null, null, null)
         }
     }
 
-    inner class Job{
+    inner class Job {
         fun update(job: V1Job) {
-
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            BatchV1Api(client)
-                    .replaceNamespacedJob(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+            BatchV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedJob(job.metadata?.name, job.metadata?.namespace, job, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            BatchV1Api(apiClient)
-                    .deleteNamespacedJob(name,ns,null,null,null,null,null,null)
+            BatchV1Api(ClientUtil.apiClient())
+                    .deleteNamespacedJob(name, ns, null, null, null, null, null, null)
 
         }
 
         fun create(ns: String, job: V1Job) {
-            BatchV1Api(apiClient).createNamespacedJob(ns,job,null,null,null)
+            BatchV1Api(ClientUtil.apiClient()).createNamespacedJob(ns, job, null, null, null)
         }
     }
 
-    inner class CronJob{
+    inner class CronJob {
         fun update(job: V1beta1CronJob) {
-
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            BatchV1beta1Api(client)
-                    .replaceNamespacedCronJob(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+            BatchV1beta1Api(ClientUtil.updateClient())
+                    .replaceNamespacedCronJob(job.metadata?.name, job.metadata?.namespace, job, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            BatchV1beta1Api(apiClient)
-                    .deleteNamespacedCronJob(name,ns,null,null,null,null,null,null)
+            BatchV1beta1Api(ClientUtil.apiClient())
+                    .deleteNamespacedCronJob(name, ns, null, null, null, null, null, null)
 
         }
 
         fun create(ns: String, job: V1beta1CronJob) {
-            BatchV1beta1Api(apiClient).createNamespacedCronJob(ns,job,null,null,null)
+            BatchV1beta1Api(ClientUtil.apiClient()).createNamespacedCronJob(ns, job, null, null, null)
         }
     }
 
-    inner class Secret{
+    inner class Secret {
         fun create(ns: String, sec: V1Secret) {
-            kubeApi.createNamespacedSecret(ns,sec,null,null,null)
+            ClientUtil.kubeApi().createNamespacedSecret(ns, sec, null, null, null)
         }
 
         fun update(rc: V1Secret) {
-            UpdateClient()
-                    .replaceNamespacedSecret(rc.metadata?.name,rc.metadata?.namespace,rc,null,null,null)
+            CoreV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedSecret(rc.metadata?.name, rc.metadata?.namespace, rc, null, null, null)
         }
 
         fun delete(ns: String, name: String) {
-            kubeApi.deleteNamespacedSecret(name, ns, null, null, null, null, null, null)
+            ClientUtil.kubeApi().deleteNamespacedSecret(name, ns, null, null, null, null, null, null)
         }
 
     }
 
-    inner class ServiceAccount{
+    inner class ServiceAccount {
         fun create(ns: String, sec: V1ServiceAccount) {
-            kubeApi.createNamespacedServiceAccount(ns,sec,null,null,null)
+            ClientUtil.kubeApi().createNamespacedServiceAccount(ns, sec, null, null, null)
         }
 
         fun update(rc: V1ServiceAccount) {
-            UpdateClient()
-                    .replaceNamespacedServiceAccount(rc.metadata?.name,rc.metadata?.namespace,rc,null,null,null)
+            CoreV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedServiceAccount(rc.metadata?.name, rc.metadata?.namespace, rc, null, null, null)
         }
 
         fun delete(ns: String, name: String) {
-            kubeApi.deleteNamespacedServiceAccount(name, ns, null, null, null, null, null, null)
+            ClientUtil.kubeApi().deleteNamespacedServiceAccount(name, ns, null, null, null, null, null, null)
         }
     }
 
-    inner class HorizontalPodAutoscaler{
+    inner class HorizontalPodAutoscaler {
         fun update(job: V1HorizontalPodAutoscaler) {
 
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            AutoscalingV1Api(client)
-                    .replaceNamespacedHorizontalPodAutoscaler(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+            AutoscalingV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedHorizontalPodAutoscaler(job.metadata?.name, job.metadata?.namespace, job, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            AutoscalingV1Api(apiClient)
-                    .deleteNamespacedHorizontalPodAutoscaler(name,ns,null,null,null,null,null,null)
+            AutoscalingV1Api(ClientUtil.apiClient())
+                    .deleteNamespacedHorizontalPodAutoscaler(name, ns, null, null, null, null, null, null)
 
         }
 
         fun create(ns: String, job: V1HorizontalPodAutoscaler) {
-            AutoscalingV1Api(apiClient).createNamespacedHorizontalPodAutoscaler(ns,job,null,null,null)
+            AutoscalingV1Api(ClientUtil.apiClient()).createNamespacedHorizontalPodAutoscaler(ns, job, null, null, null)
         }
 
     }
 
-    inner class Role{
+    inner class Role {
         fun update(job: V1Role) {
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            RbacAuthorizationV1Api(client)
-                    .replaceNamespacedRole(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedRole(job.metadata?.name, job.metadata?.namespace, job, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            RbacAuthorizationV1Api(apiClient)
-                    .deleteNamespacedRole(name,ns,null,null,null,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.apiClient())
+                    .deleteNamespacedRole(name, ns, null, null, null, null, null, null)
 
         }
 
         fun create(ns: String, job: V1Role) {
-            RbacAuthorizationV1Api(apiClient).createNamespacedRole(ns,job,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.apiClient()).createNamespacedRole(ns, job, null, null, null)
         }
     }
 
-    inner class RoleBinding{
+    inner class RoleBinding {
         fun update(job: V1RoleBinding) {
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            RbacAuthorizationV1Api(client)
-                    .replaceNamespacedRoleBinding(job.metadata?.name,job.metadata?.namespace,job,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.updateClient())
+                    .replaceNamespacedRoleBinding(job.metadata?.name, job.metadata?.namespace, job, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            RbacAuthorizationV1Api(apiClient)
-                    .deleteNamespacedRoleBinding(name,ns,null,null,null,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.apiClient())
+                    .deleteNamespacedRoleBinding(name, ns, null, null, null, null, null, null)
 
         }
 
         fun create(ns: String, job: V1RoleBinding) {
-            RbacAuthorizationV1Api(apiClient).createNamespacedRoleBinding(ns,job,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.apiClient()).createNamespacedRoleBinding(ns, job, null, null, null)
         }
     }
 
-    inner class ClusterRole{
+    inner class ClusterRole {
         fun update(job: V1ClusterRole) {
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            RbacAuthorizationV1Api(client)
-                    .replaceClusterRole(job.metadata?.name,job,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.updateClient())
+                    .replaceClusterRole(job.metadata?.name, job, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            RbacAuthorizationV1Api(apiClient)
-                    .deleteClusterRole(name,null,null,null,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.apiClient())
+                    .deleteClusterRole(name, null, null, null, null, null, null)
 
         }
 
         fun create(ns: String, job: V1ClusterRole) {
-            RbacAuthorizationV1Api(apiClient).createClusterRole(job,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.apiClient()).createClusterRole(job, null, null, null)
         }
     }
 
-    inner class ClusterRoleBinding{
+    inner class ClusterRoleBinding {
         fun update(job: V1ClusterRoleBinding) {
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath)))
-                    .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
-            client.setDebugging(true)
-            RbacAuthorizationV1Api(client)
-                    .replaceClusterRoleBinding(job.metadata?.name,job,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.updateClient())
+                    .replaceClusterRoleBinding(job.metadata?.name, job, null, null, null)
 
         }
 
         fun delete(ns: String, name: String) {
-            RbacAuthorizationV1Api(apiClient)
-                    .deleteClusterRoleBinding(name,null,null,null,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.apiClient())
+                    .deleteClusterRoleBinding(name, null, null, null, null, null, null)
 
         }
 
         fun create(ns: String, job: V1ClusterRoleBinding) {
-            RbacAuthorizationV1Api(apiClient).createClusterRoleBinding(job,null,null,null)
+            RbacAuthorizationV1Api(ClientUtil.apiClient()).createClusterRoleBinding(job, null, null, null)
         }
     }
 

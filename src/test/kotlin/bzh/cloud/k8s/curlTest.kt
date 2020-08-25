@@ -21,8 +21,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
+import kotlin.collections.HashSet
 
 @SpringBootTest
 class CurlTest {
@@ -37,6 +39,9 @@ class CurlTest {
 
     @Autowired
     lateinit var localRegistryApi: DefaultApi
+
+    @Autowired
+    lateinit var watchClient : ApiClient
 
     @Autowired
     lateinit var kubeApi: CoreV1Api
@@ -54,11 +59,10 @@ class CurlTest {
 
     @Test
     fun testLog() {
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
         val a = curl {
-            client { client.httpClient }
+            client { watchClient.httpClient }
             request {
-                url("${client.basePath}/api/v1/namespaces/test2/pods/testpod/log")
+                url("${watchClient.basePath}/api/v1/namespaces/test2/pods/testpod/log")
                 params {
                     "follow" to true
                     "previous" to false
@@ -79,11 +83,11 @@ class CurlTest {
     @Test
     fun test13() {
         println(apiClient.isDebugging)
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
+
         val a = curl {
-            client { client.httpClient }
+            client { watchClient.httpClient }
             request {
-                url("${client.basePath}/api/v1/replicationcontrollers")
+                url("${watchClient.basePath}/api/v1/replicationcontrollers")
                 params {
                     "watch" to "true"
                 }
@@ -290,10 +294,10 @@ class CurlTest {
 
     @Test
     fun sdsd(){
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
+
         val watch = Watch.createWatch<V1ReplicationController>(
-                client,
-                api.listReplicationControllerForAllNamespacesCall(null,null,null,null,null,null,null,null,true,null),
+                watchClient,
+                CoreV1Api(watchClient).listReplicationControllerForAllNamespacesCall(null,null,null,null,null,null,null,null,true,null),
                 object : TypeToken<Watch.Response<V1ReplicationController>>() {}.type)
         watch.forEach {
             log.info("{}",it.`object`.metadata?.name)
@@ -302,11 +306,11 @@ class CurlTest {
 
     @Test
     fun clusterrolebindings(){
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
+
         val list = curl{
-            client { client.httpClient }
+            client { watchClient.httpClient }
             request{
-                url("${client.basePath}/apis/rbac.authorization.k8s.io/v1/clusterroles")
+                url("${watchClient.basePath}/apis/rbac.authorization.k8s.io/v1/clusterroles")
                 params {
                     "watch" to true
                 }
@@ -324,17 +328,32 @@ class CurlTest {
 
     @Test
     fun metrics(){
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
+
         val response = curl{
-            client { client.httpClient }
+            client { watchClient.httpClient }
             request{
-                url("${client.basePath}/apis/metrics.k8s.io/v1beta1/nodes")
+                url("${watchClient.basePath}/apis/metrics.k8s.io/v1beta1/nodes")
 
             }
         }as Response
         val str =  response.body()?.string()!!
 
         println(str)
+    }
+    
+    @Test
+    fun code56(){
+
+        fun merge(intervals: Array<IntArray>): Array<IntArray> {
+            return intervals.foldIndexed(arrayOf(IntArray(2))){index,result,each->
+
+                result
+            }
+        }
+
+
+        //[[1,3],[2,6],[8,10],[15,18]]
+        val arr = arrayOf(arrayOf(1,3),arrayOf(2,6), arrayOf(6,8), arrayOf(15,18));
     }
 
 

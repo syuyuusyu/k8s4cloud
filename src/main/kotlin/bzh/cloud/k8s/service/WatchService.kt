@@ -1,11 +1,17 @@
 package bzh.cloud.k8s.service
 
+
+import bzh.cloud.k8s.config.ClientUtil
 import com.google.gson.reflect.TypeToken
+import io.kubernetes.client.openapi.ApiClient
+import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.models.*
 import io.kubernetes.client.util.Watch
 import kotlinx.coroutines.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import reactor.core.publisher.FluxSink
 import java.util.*
@@ -19,6 +25,8 @@ class WatchService(
         val threadPool: Executor
         //val atomicThread : ExecutorCoroutineDispatcher
 ) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
+
+
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(WatchService::class.java)
@@ -97,11 +105,11 @@ class WatchService(
     var podWatch: Watch<V1Pod>? = null
 
     private fun initpodWatch() {
+        val watchClient = ClientUtil.watchClient()
         podWatchRuning.set(true)
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
         podWatch = Watch.createWatch<V1Pod>(
-                client,
-                api.listPodForAllNamespacesCall(null, null, null, null, null, null,
+                watchClient,
+                CoreV1Api(watchClient).listPodForAllNamespacesCall(null, null, null, null, null, null,
                         null, null, java.lang.Boolean.TRUE, null),
                 object : TypeToken<Watch.Response<V1Pod>>() {}.type)
         launch(threadPool.asCoroutineDispatcher()) {
@@ -171,10 +179,10 @@ class WatchService(
     var quotaWatch: Watch<V1ResourceQuota>? = null
 
     private fun initquotaWatch() {
-        val (client, api) = bzh.cloud.k8s.config.watchClient()
+        val watchClient = ClientUtil.watchClient()
         quotaWatch = Watch.createWatch<V1ResourceQuota>(
-                client,
-                api.listResourceQuotaForAllNamespacesCall(null, null, "",
+                watchClient,
+                CoreV1Api(watchClient).listResourceQuotaForAllNamespacesCall(null, null, "",
                         "", null, null, null, 0, true, null),
                 object : TypeToken<Watch.Response<V1ResourceQuota>>() {}.type)
         launch(threadPool.asCoroutineDispatcher()) {

@@ -22,9 +22,9 @@ server:
   port: 8002
 
 self:
-  registryUrl: http://10.10.25.1:5000
+  #registryUrl: http://10.10.50.199:5000
   deleteImgUrl: http://10.10.25.1:1200
-  #registryUrl: http://192.168.50.28:5000
+  registryUrl: http://10.10.50.199:5000
   #registryUrl: http://127.0.0.1:5000
 
   #officalRegistryUrl: https://registry.aliyuncs.com
@@ -37,9 +37,9 @@ self:
   enableProxy: true
   needProxyUrl:
     - https://index.docker.io
-  kubeConfigPath: /Users/syu/.kube/config-dk
+  kubeConfigPath: /Users/syu/.kube/config-sup
   #kubeConfigPath: /Users/syu/.kube/config-company
-  #kubeConfigPath: /Users/syu/.kube/config
+  ##kubeConfigPath: /Users/syu/.kube/config
   tokenExpireMin: 300
   jwtkey: 1KP0SsvENi7Uz1oQc07aXTL7kpQG5jBNIybqr60AlD4
   activitiRedisApprovalMessageChannel: receiveApprovalSresult

@@ -2,14 +2,16 @@ package bzh.cloud.k8s.service
 
 
 
+import bzh.cloud.k8s.config.ClientUtil
+import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.models.V1Pod
 import org.springframework.stereotype.Service
 
 @Service
-class PodService(
-        val  kubeApi : CoreV1Api
-) {
+class PodService() {
+
+
     fun pods(nameSpaces:List<String>,labelSelector:String=""):List<Map<String,Any?>>{
 
         return allPods(nameSpaces,labelSelector).map {
@@ -35,7 +37,7 @@ class PodService(
     fun allPods( nameSpaces:List<String>,labelSelector:String=""):List<V1Pod> {
         var reuslt= ArrayList<V1Pod>()
         nameSpaces.parallelStream().forEach {
-            var a= kubeApi.listNamespacedPod(it,"true",null,null,null,
+            var a= ClientUtil.kubeApi().listNamespacedPod(it,"true",null,null,null,
                     null,null,null,0,false) .items
             reuslt.addAll(a)
         }

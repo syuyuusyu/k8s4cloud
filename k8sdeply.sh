@@ -1,5 +1,6 @@
-v="v1.09"
-ip="10.10.25.1:5000"
+v="v1.07"
+ip="10.10.50.199:5000"
+#ip="10.10.25.1:5000"
 mvn package -Dmaven.test.skip=true &&
 docker build -t k8s4cloud:$v . #&&
 docker tag k8s4cloud:$v $ip/k8s4cloud:$v &&

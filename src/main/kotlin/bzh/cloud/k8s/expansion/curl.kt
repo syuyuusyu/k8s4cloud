@@ -18,6 +18,8 @@ import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+val okHttpClient = OkHttpClient()
+
 fun json(build: JsonObjectBuilder.() -> Unit): JSONObject {
     val builder = JsonObjectBuilder()
     builder.build()
@@ -199,7 +201,7 @@ class RequestEntity{
 }
 
 class CurlEntity{
-    var client = OkHttpClient()
+    var client = okHttpClient
     lateinit var request : Request
     lateinit var response: Response
     lateinit var requestEntity: RequestEntity
@@ -270,7 +272,9 @@ class CurlEvent(): CoroutineScope by CoroutineScope(Dispatchers.Default) {
         }
         source = response.body()?.source()
         watchRunning.set(true)
-        launch(threadPool?.asCoroutineDispatcher() ?: Dispatchers.Default) {
+
+        var job:Job?=null
+        job = launch(threadPool?.asCoroutineDispatcher() ?: Dispatchers.Default) {
             while (watchRunning.get()){
                 response.body()?.source()
                 try {
