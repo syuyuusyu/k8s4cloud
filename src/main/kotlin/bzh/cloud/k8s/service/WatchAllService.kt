@@ -47,8 +47,8 @@ class WatchAllService(
     val urlMap = mapOf<String, String>(
             "Node" to "/api/v1/nodes", //no
             "Pod" to "/api/v1/pods", //pod
-            //"Endpoints" to "/api/v1/endpoints",
-            //"ns" to "/api/v1/namespaces",
+            "Endpoints" to "/api/v1/endpoints",
+            "ns" to "/api/v1/namespaces",
             "ConfigMap" to "/api/v1/configmaps", //cm
             "Event" to "/api/v1/events", //event
             "ResourceQuota" to "/api/v1/resourcequotas", // quota
@@ -176,6 +176,7 @@ class WatchAllService(
                     if (url == "/api/v1/nodes") {
                         //log.info("{}", line)
                     }
+                    //log.info("{}", line)
                     val json = JSONObject(line)
                     val type = json.getString("type")
                     val uid = json.getJSONObject("object").getJSONObject("metadata").getString("uid")

@@ -20,6 +20,10 @@ logging:
 
 server:
   port: 8002
+  ssl:
+    key-store: classpath:static/yndk.pfx
+    keyStoreType: pkcs12
+    key-store-password: 123456
 
 self:
   #registryUrl: http://10.10.50.199:5000

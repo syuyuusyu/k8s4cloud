@@ -29,7 +29,7 @@ class WatchNsService(
 
 
     companion object {
-        private val log: Logger = LoggerFactory.getLogger(WatchAllService::class.java)
+        private val log: Logger = LoggerFactory.getLogger(WatchNsService::class.java)
     }
 
     val heartbeat = """{"type":"HEARTBEAT"}"""
@@ -84,7 +84,7 @@ class WatchNsService(
         t
     }
 
-    @Scheduled(fixedRate = 1000 * 30)
+    //@Scheduled(fixedRate = 1000 * 30)
     fun heartbeat() {
         log.info("heartbeat")
         val watchClient = ClientUtil.watchClient()

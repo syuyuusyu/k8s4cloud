@@ -1,4 +1,4 @@
-v="v1.07"
+v="v1.18"
 ip="10.10.50.199:5000"
 #ip="10.10.25.1:5000"
 mvn package -Dmaven.test.skip=true &&
