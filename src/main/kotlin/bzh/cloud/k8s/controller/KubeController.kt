@@ -5,33 +5,25 @@ import bzh.cloud.k8s.config.ClientUtil
 import bzh.cloud.k8s.config.CmContext
 
 
-import bzh.cloud.k8s.expansion.curl
+import bzh.cloud.k8s.utils.curl
 import bzh.cloud.k8s.expansion.metricsNode
 import bzh.cloud.k8s.service.ConfigMapService
 import bzh.cloud.k8s.service.WatchAllService
 import bzh.cloud.k8s.service.WatchNsService
 import bzh.cloud.k8s.service.WatchService
-import com.fasterxml.jackson.core.type.TypeReference
-import io.kubernetes.client.custom.V1Patch
-import io.kubernetes.client.util.ClientBuilder
-import io.kubernetes.client.util.KubeConfig
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.util.StringUtils
 import org.springframework.web.bind.annotation.*
-import java.io.FileReader
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kubernetes.client.custom.Quantity
-import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.ApiException
 import io.kubernetes.client.openapi.apis.*
 import io.kubernetes.client.openapi.models.*
 import kotlinx.coroutines.*
 import okhttp3.Response
 import org.json.JSONObject
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpResponse
@@ -83,7 +75,6 @@ class KubeController(
                 } catch (e1: Exception) {
                     result["msg"] = e.localizedMessage
                 }
-
             }
         }
     }
@@ -105,8 +96,9 @@ class KubeController(
             request {
                 url("${apiClient.basePath}/openapi/v2")
             }
+            returnType(Response::class.java)
 
-        } as Response
+        }as Response
         return response.body()?.string()!!
     }
 
@@ -118,8 +110,9 @@ class KubeController(
             request {
                 url("${apiClient.basePath}/openapi/v2")
             }
+            returnType(Response::class.java)
 
-        } as Response
+        }as Response
         val str = response.body()?.string()!!
         val json = JSONObject(str)
         return json.getJSONObject("definitions").toString(0)
@@ -145,7 +138,6 @@ class KubeController(
     fun watchlist(response: ServerHttpResponse): Flux<V1ResourceQuota> {
         return Flux.create<V1ResourceQuota> { watchService.addQuotaSink(it) }.doFinally {
             log.info("/watch/allResourcequota complete")
-
         }
     }
 

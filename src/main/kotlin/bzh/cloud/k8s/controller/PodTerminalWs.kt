@@ -1,18 +1,23 @@
 package bzh.cloud.k8s.controller
 
+import bzh.cloud.k8s.config.ClientUtil
 import io.kubernetes.client.Exec
 import io.kubernetes.client.openapi.Configuration
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
+import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
+import org.springframework.web.reactive.socket.WebSocketMessage
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
 import java.io.FileReader
 import reactor.core.publisher.Flux
+import reactor.core.scheduler.Scheduler
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
 import java.util.*
 import kotlin.collections.ArrayList
@@ -20,7 +25,9 @@ import kotlin.collections.HashMap
 
 
 @Component
-class PodTerminalWs :WebSocketHandler {
+class PodTerminalWs(
+        val intervalScheduler:Scheduler
+) :WebSocketHandler {
 
     @Value("\${self.kubeConfigPath}")
     lateinit var kubeConfigPath: String
@@ -43,13 +50,13 @@ class PodTerminalWs :WebSocketHandler {
             val namespace = parameterMap["ns"]
             val podName = parameterMap["name"]
             val containerName = parameterMap["container"];
-            val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(kubeConfigPath))).build()
+            val client = ClientUtil.apiClient()
             val exec = Exec(client)
             val proc = exec.exec(namespace, podName, arrayOf("sh"), containerName,true, true);
             val input=proc.inputStream
             val output = proc.outputStream
 
-            val outFlux= Flux.interval(Duration.ofMillis(100))
+            val outFlux= Flux.interval(Duration.ofMillis(100),intervalScheduler)
                     .map {input.available()}.filter { it>0 }
                     .map {
                         val byteArray = ByteArray(it)
@@ -71,6 +78,7 @@ class PodTerminalWs :WebSocketHandler {
                 log.debug("Received message from client [{}]: {} ", sessionId,String(bytes) )
                 output.write( bytes)
             }
+
             return session.send(outFlux)
         }
         return Mono.empty()

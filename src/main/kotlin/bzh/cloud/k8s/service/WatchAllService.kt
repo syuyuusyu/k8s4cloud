@@ -2,24 +2,24 @@ package bzh.cloud.k8s.service
 
 
 import bzh.cloud.k8s.config.ClientUtil
-import bzh.cloud.k8s.expansion.CurlEvent
-import bzh.cloud.k8s.expansion.curl
+import bzh.cloud.k8s.utils.CurlEvent
+import bzh.cloud.k8s.utils.curl
 
 import io.kubernetes.client.openapi.ApiClient
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
 import okhttp3.Response
 
 import org.json.JSONObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import reactor.core.publisher.FluxSink
-import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
 
 import java.util.concurrent.Executors
 import kotlin.collections.HashMap
@@ -29,7 +29,7 @@ import kotlin.collections.HashSet
 @Service
 @EnableScheduling
 class WatchAllService(
-        val atomicThread: ExecutorCoroutineDispatcher
+        //val atomicThread: ExecutorCoroutineDispatcher
 
 ) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
@@ -40,15 +40,16 @@ class WatchAllService(
     }
 
     val heartbeat = """{"type":"HEARTBEAT"}"""
-    private val dispatcherSink = Collections.synchronizedSet(HashSet<FluxSink<String>>())
+    //private val dispatcherSink = Collections.synchronizedSet(HashSet<FluxSink<String>>())
+    private val dispatcherSink = ConcurrentLinkedQueue<FluxSink<String>>()
     private val curlEventMap = HashMap<String, CurlEvent>()
-    private val cache = HashMap<String, String>(2000)
+    private val cache = ConcurrentHashMap<String, String>(2000)
 
     val urlMap = mapOf<String, String>(
             "Node" to "/api/v1/nodes", //no
             "Pod" to "/api/v1/pods", //pod
-            "Endpoints" to "/api/v1/endpoints",
-            "ns" to "/api/v1/namespaces",
+            //"Endpoints" to "/api/v1/endpoints",
+            //"ns" to "/api/v1/namespaces",
             "ConfigMap" to "/api/v1/configmaps", //cm
             "Event" to "/api/v1/events", //event
             "ResourceQuota" to "/api/v1/resourcequotas", // quota
@@ -64,19 +65,12 @@ class WatchAllService(
             "DaemonSet" to "/apis/apps/v1/daemonsets", //ds
             "Deployment" to "/apis/apps/v1/deployments", //deploy
             "ReplicaSet" to "/apis/apps/v1/replicasets", //rs
-
             "StatefulSet" to "/apis/apps/v1/statefulsets", //sts
-
             "CronJob" to "/apis/batch/v1beta1/cronjobs", //cj
-
             "Job" to "/apis/batch/v1/jobs", //job
-
             "Ingress" to "/apis/extensions/v1beta1/ingresses",
-
             "HorizontalPodAutoscaler" to "/apis/autoscaling/v1/horizontalpodautoscalers", //pha
-
             "NetworkPolicy" to "/apis/networking.k8s.io/v1/networkpolicies", //netpol
-
             "ClusterRoleBinding" to "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings", //clusterrolebindings
             "ClusterRole" to "/apis/rbac.authorization.k8s.io/v1/clusterroles", //clusterroles
             "RoleBinding" to "/apis/rbac.authorization.k8s.io/v1/rolebindings", //rolebindings
@@ -84,11 +78,7 @@ class WatchAllService(
             //"Metrics" to "/apis/metrics.k8s.io/v1beta1/nodes"
     )
 
-    val watchPool = Executors.newFixedThreadPool(urlMap.size + 2) { r ->
-        val t = Thread(r)
-        t.isDaemon = true
-        t
-    }
+    val watchPool = Executors.newFixedThreadPool(urlMap.size + 2) { Thread(it).apply { isDaemon=true } }
 
     @Scheduled(fixedRate = 1000 * 30)
     fun heartbeat() {
@@ -128,36 +118,48 @@ class WatchAllService(
         metricsPod()
     }
 
+//    fun addSink(sink: FluxSink<String>) {
+//        log.info("addSink")
+//        launch {
+//            withContext(atomicThread) {
+//
+//                log.info("sink heartbeat,atomicThread.isActive:{}",atomicThread.isActive)
+//                sink.next(heartbeat)
+//                log.info("before sink cache")
+//                cache.values.forEach { sink.next(it) }
+//                log.info("after sink cache")
+//                dispatcherSink.add(sink)
+//                log.info("dispatcherSink added")
+//                metricsNodes()
+//                metricsPod()
+//                log.info("end addSink")
+//            }
+//        }
+//    }
     fun addSink(sink: FluxSink<String>) {
         log.info("addSink")
+        sink.next(heartbeat)
         launch {
-            withContext(atomicThread) {
-                log.info("sink heartbeat")
-                sink.next(heartbeat)
-                log.info("before sink cache")
-                cache.values.forEach { sink.next(it) }
-                log.info("after sink cache")
-                dispatcherSink.add(sink)
-                log.info("dispatcherSink added")
-                metricsNodes()
-                metricsPod()
-                log.info("end addSink")
-            }
+            log.info("before sink cache")
+            cache.values.forEach { sink.next(it) }
+            log.info("after sink cache")
+            dispatcherSink.add(sink)
+            log.info("dispatcherSink added")
+//            metricsNodes()
+//            metricsPod()
+            log.info("end addSink")
         }
     }
 
     fun addCache(uid: String, json: String, deleteFlag: Boolean, name: String = "", kind: String = "") {
-        launch {
-            withContext(atomicThread) {
-                if (deleteFlag) {
-                    cache.remove(uid)
-                } else {
-                    cache.put(uid, json)
-                }
-                log.info("addCache deleteFlag:{},kind:{},name:{} cache-size:{}", deleteFlag, kind, name, cache.size)
-            }
-        }
 
+            if (deleteFlag) {
+                cache.remove(uid)
+            } else {
+                cache.put(uid, json)
+                log.info("addCache deleteFlag:{},kind:{},name:{} ", deleteFlag, kind, name)
+            }
+        
     }
 
     fun watch(url: String): CurlEvent {
@@ -205,7 +207,7 @@ class WatchAllService(
                     url("${apiClient.basePath}/apis/metrics.k8s.io/v1beta1/nodes")
                 }
 
-            }  as Response
+            } as Response
             val str = response.body()?.string()!!
             //log.info(str)
             dispatcherSink.forEach { it.next(str) }
@@ -230,11 +232,6 @@ class WatchAllService(
     }
 }
 
-//  /apis/metrics.k8s.io/v1beta1/namespaces/{namespace}/pods
-//  /apis/metrics.k8s.io/v1beta1/namespaces/{namespace}/pods/{name}
-//  /apis/metrics.k8s.io/v1beta1/nodes
-//  /apis/metrics.k8s.io/v1beta1/nodes/{name}
-//  /apis/metrics.k8s.io/v1beta1/pods
 
 
 

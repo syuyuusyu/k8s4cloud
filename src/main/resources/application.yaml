@@ -5,11 +5,9 @@ spring:
   jackson:
     default-property-inclusion: NON_NULL
 
-
-
 logging:
   level:
-    ind.syu: info
+    ind.syu: debug
     io.kubernetes: info
     org:
       springframework: info
@@ -20,10 +18,10 @@ logging:
 
 server:
   port: 8002
-  ssl:
-    key-store: classpath:static/yndk.pfx
-    keyStoreType: pkcs12
-    key-store-password: 123456
+#  ssl:
+#    key-store: classpath:static/yndk.pfx
+#    keyStoreType: pkcs12
+#    key-store-password: 123456
 
 self:
   #registryUrl: http://10.10.50.199:5000
@@ -38,12 +36,12 @@ self:
   authRegistryUrl: https://auth.docker.io
   httpProxy: 127.0.0.1:1087
   tempFileDir: /tmp/registry/
-  enableProxy: true
+  enableProxy: false
   needProxyUrl:
     - https://index.docker.io
+  #kubeConfigPath: /config
   kubeConfigPath: /Users/syu/.kube/config-sup
-  #kubeConfigPath: /Users/syu/.kube/config-company
-  ##kubeConfigPath: /Users/syu/.kube/config
+  #kubeConfigPath: /Users/syu/.kube/test
   tokenExpireMin: 300
   jwtkey: 1KP0SsvENi7Uz1oQc07aXTL7kpQG5jBNIybqr60AlD4
   activitiRedisApprovalMessageChannel: receiveApprovalSresult

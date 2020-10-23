@@ -48,6 +48,8 @@ public class JsonUtil {
 	}
 	public static <T> T jsonToBean(String json, TypeReference<T> clazz) {
 		try {
+			System.out.println(json);
+			System.out.println(11111);
 			return objectMapper.readValue(json, clazz);
 		} catch (Exception e) {
 			e.printStackTrace();

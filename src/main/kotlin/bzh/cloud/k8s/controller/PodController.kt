@@ -3,40 +3,33 @@ package bzh.cloud.k8s.controller
 
 
 import bzh.cloud.k8s.config.ClientUtil
-import bzh.cloud.k8s.expansion.CurlEvent
-import bzh.cloud.k8s.expansion.curl
 import bzh.cloud.k8s.service.WatchService
-import io.kubernetes.client.PodLogs
-import io.kubernetes.client.custom.V1Patch
-import io.kubernetes.client.openapi.ApiClient
+import bzh.cloud.k8s.utils.CurlEvent
+import bzh.cloud.k8s.utils.curl
 import io.kubernetes.client.openapi.ApiException
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.openapi.models.V1NamespaceBuilder
 import io.kubernetes.client.openapi.models.V1Pod
-import io.kubernetes.client.util.ClientBuilder
-import io.kubernetes.client.util.KubeConfig
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import okhttp3.Response
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
-import org.springframework.util.StringUtils
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
-import reactor.core.publisher.toFlux
-import java.io.FileReader
+import reactor.core.scheduler.Scheduler
+import reactor.core.scheduler.Schedulers
 import java.nio.charset.StandardCharsets
 import java.time.Duration
-import java.util.stream.Collectors
+import java.util.concurrent.Executor
 
 
 @RestController
 @RequestMapping("/kube")
 class PodController(
-
+        val threadPool: Executor,
         val watchService: WatchService
 ) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
@@ -108,17 +101,16 @@ class PodController(
                     var a = list.joinToString("<br/>")
                     a
                 }
-
-
     }
+
 
     @GetMapping(path = ["/watch/log/{ns}/{pname}/{cname}"], produces = arrayOf(MediaType.TEXT_EVENT_STREAM_VALUE))
     fun logcurl(@PathVariable ns: String, @PathVariable pname: String, @PathVariable cname: String): Flux<String> {
         val watchClient = ClientUtil.watchClient()
-        return Flux.create { sink ->
+        var eve: CurlEvent? = null
+        return Flux.create<String> { sink ->
             sink.next("");
             //sink.next(firstlog)
-            var eve: CurlEvent? = null
             eve = curl {
                 client { watchClient.httpClient }
                 request {
@@ -136,19 +128,16 @@ class PodController(
                 }
                 event {
                     readStream { byte ->
-                        if (sink.isCancelled) {
-                            eve?.close()
-                        }
                         //log.info("{}",String(byte))
                         val logstr = String(byte, StandardCharsets.UTF_8).replace(0.toChar().toString(), "")
-                        log.info("{}", logstr.length)
+                        //log.info("{}", logstr.length)
                         //println("-1"+logstr+"2-")
                         sink.next(logstr)
                     }
                 }
             } as CurlEvent
 
-        }
+        }.doFinally{ eve?.close() }
     }
 
     @GetMapping("/namespace/{ns}/Pod/{podName}")

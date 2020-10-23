@@ -1,5 +1,6 @@
 package bzh.cloud.k8s.expansion
 
+import bzh.cloud.k8s.utils.curl
 import io.kubernetes.client.models.NodeMetricsList
 
 

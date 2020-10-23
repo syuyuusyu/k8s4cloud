@@ -1,7 +1,5 @@
-package bzh.cloud.k8s.expansion
+package bzh.cloud.k8s.utils
 
-import bzh.cloud.k8s.utils.JsonUtil
-import bzh.cloud.k8s.utils.SpringUtil
 import com.fasterxml.jackson.core.type.TypeReference
 import kotlinx.coroutines.*
 import okhttp3.*
@@ -17,6 +15,7 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.*
 
 val okHttpClient = OkHttpClient()
 
@@ -207,7 +206,7 @@ class CurlEntity{
     lateinit var requestEntity: RequestEntity
     var returnType: Any?=null
 
-    var curlEvent:CurlEvent?=null
+    var curlEvent: CurlEvent?=null
 
     var enableDownloadProcess = false
     var enableUploadProcess = false
@@ -216,7 +215,7 @@ class CurlEntity{
     fun client(buildClient:()->OkHttpClient){
         this.client = buildClient()
     }
-    fun request(buildRequest:RequestEntity.() -> Unit){
+    fun request(buildRequest: RequestEntity.() -> Unit){
         requestEntity = RequestEntity()
         requestEntity.buildRequest()
         request = requestEntity.request
@@ -224,8 +223,8 @@ class CurlEntity{
     fun returnType(type:Any){
         this.returnType =  type
     }
-    fun event(eventFun:CurlEvent.()->Unit){
-        this.curlEvent =  CurlEvent(this@CurlEntity,eventFun)
+    fun event(eventFun: CurlEvent.()->Unit){
+        this.curlEvent = CurlEvent(this@CurlEntity, eventFun)
     }
 }
 
@@ -235,7 +234,7 @@ class CurlEvent(): CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
     lateinit var eventFun : CurlEvent.() -> Unit
     lateinit var curlEntity: CurlEntity
-    constructor(entity: CurlEntity,init: CurlEvent.() -> Unit) : this() {
+    constructor(entity: CurlEntity, init: CurlEvent.() -> Unit) : this() {
         this.curlEntity = entity
         this.eventFun = init
     }
@@ -267,7 +266,7 @@ class CurlEvent(): CoroutineScope by CoroutineScope(Dispatchers.Default) {
         this.threadPool = threadFun()
     }
     fun  onWacth(watchFun:(readline:String)->Unit)  {
-        if(code != ProcessCode.faterCall ){
+        if(code != ProcessCode.faterCall){
             return
         }
         source = response.body()?.source()
@@ -297,7 +296,7 @@ class CurlEvent(): CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
     }
     fun readStream(inputfun:(input:ByteArray)->Unit){
-        if(code != ProcessCode.faterCall ) return
+        if(code != ProcessCode.faterCall) return
         inputStream = response.body()?.byteStream()!!
         readStreamRunning.set(true)
         launch(threadPool?.asCoroutineDispatcher() ?: Dispatchers.Default) {
@@ -317,7 +316,7 @@ class CurlEvent(): CoroutineScope by CoroutineScope(Dispatchers.Default) {
         this.curlEntity.client = this.curlEntity.client.newBuilder().addNetworkInterceptor { chain: Interceptor.Chain ->
             val originalResponse = chain.proceed(chain.request())
             originalResponse.newBuilder()
-                    .body(ProgressResponse(originalResponse.body()!!,processFun))
+                    .body(ProgressResponse(originalResponse.body()!!, processFun))
                     .build()
         }.build()
     }
@@ -327,7 +326,7 @@ class CurlEvent(): CoroutineScope by CoroutineScope(Dispatchers.Default) {
             throw Exception("request type numst be File when enable onUploadProgress")
         }
         this.curlEntity.enableUploadProcess = true
-        this.curlEntity.requestEntity.body = ProgressRequest( this.curlEntity.requestEntity.originFile!!,processFun)
+        this.curlEntity.requestEntity.body = ProgressRequest(this.curlEntity.requestEntity.originFile!!, processFun)
     }
 }
 
@@ -337,7 +336,7 @@ fun request(init: RequestEntity.() -> Unit): Request {
     return en.request
 }
 
-fun curl(exec:CurlEntity.()->Unit) :Any{
+fun  curl(exec: CurlEntity.()->Unit) :Any{
     var result :Any
     val entity = CurlEntity()
     entity.exec()
@@ -368,13 +367,56 @@ fun curl(exec:CurlEntity.()->Unit) :Any{
 
     result = response
     entity.returnType?.let {
-        when (it) {
-            is TypeReference<*> ->  result=  JsonUtil.jsonToBean(response.body()?.string(), it)
-            is Class<*> -> result = JsonUtil.jsonToBean(response.body()?.string(), it)
-            else -> throw Exception("unknow return type $it")
+        try {
+            when (it) {
+                is TypeReference<*> ->  result=  JsonUtil.jsonToBean(response.body()?.string(), it)
+                is Class<*> -> result = JsonUtil.jsonToBean(response.body()?.string(), it)
+                else -> throw Exception("unknow return type $it")
+            }
+        }catch (e:Exception){
+            e.printStackTrace()
+            result = Any()
         }
     }
+
+
     return result
 }
+
+interface AsyncScop
+
+fun async(
+        context: CoroutineContext = EmptyCoroutineContext,
+        block: suspend AsyncScop.()->Unit ){
+    val completion = AsyncCoroutine(context)
+    block.startCoroutine(completion,completion)
+}
+
+class AsyncCoroutine(override val context: CoroutineContext = EmptyCoroutineContext ) : Continuation<Unit>,AsyncScop{
+    override fun resumeWith(result: Result<Unit>) {
+        result.getOrThrow()
+    }
+}
+
+suspend fun <T> AsyncScop.await(block:CurlEntity.()->Unit ) = suspendCoroutine<T> { continuation ->
+    val entity = CurlEntity()
+    //entity.returnType(object : TypeReference<T>() {})
+    entity.block()
+    try {
+        val call: Call = entity.client.newCall(entity.request)
+        val response = call.execute()
+
+        val a =JsonUtil.jsonToBean(response.body()?.string(), object : TypeReference<T>() {})
+        continuation.resume(a)
+
+    }catch (e:Exception){
+        continuation.resumeWithException(e)
+    }
+
+
+
+
+}
+
 
 

@@ -1,13 +1,14 @@
 package bzh.cloud.k8s
 
+import bzh.cloud.k8s.config.ClientUtil
 import bzh.cloud.k8s.expansion.*
-import com.fasterxml.jackson.core.type.TypeReference
+import bzh.cloud.k8s.utils.*
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.apis.CoreV1Api
+import io.kubernetes.client.openapi.models.V1NodeList
 import io.kubernetes.client.openapi.models.V1ReplicationController
 import io.kubernetes.client.openapi.models.V1ReplicationControllerList
-import io.kubernetes.client.openapi.models.V1ResourceQuota
 import io.kubernetes.client.util.Watch
 import okhttp3.*
 import org.json.JSONArray
@@ -21,7 +22,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 import kotlin.collections.HashSet
@@ -40,11 +40,6 @@ class CurlTest {
     @Autowired
     lateinit var localRegistryApi: DefaultApi
 
-    @Autowired
-    lateinit var watchClient : ApiClient
-
-    @Autowired
-    lateinit var kubeApi: CoreV1Api
 
     @Autowired
     lateinit var apiClient: ApiClient
@@ -59,6 +54,7 @@ class CurlTest {
 
     @Test
     fun testLog() {
+        val watchClient = ClientUtil.watchClient()
         val a = curl {
             client { watchClient.httpClient }
             request {
@@ -83,7 +79,7 @@ class CurlTest {
     @Test
     fun test13() {
         println(apiClient.isDebugging)
-
+        val watchClient = ClientUtil.watchClient()
         val a = curl {
             client { watchClient.httpClient }
             request {
@@ -141,6 +137,11 @@ class CurlTest {
                         "last_modified" to "2019-03-19T00:11:43.199130"
                         "name" to "宜良县检查记录（2019.3.12）/宜良县检查记录（2019.3.12）.zip"
                         "username" to "yjzjStorage"
+                        "aaa" to jsonArr {
+                            +"ssdsd"
+                            +"efefef"
+                            json { "c" to 1 }
+                        }
                     }
                 }
                 head {
@@ -218,7 +219,7 @@ class CurlTest {
         val tag = "v1.01"
         var deleteMani:V2ManifestResult?=null
         val tags = curl {
-            request{
+            request {
                 url("$registryUrl/v2/$name/tags/list")
             }
             returnType(Tags::class.java)
@@ -257,13 +258,38 @@ class CurlTest {
 
     @Test
     fun replicationcontrollers(){
-        val list = curl{
+        val list = curl {
             client { apiClient.httpClient }
-            request{
+            request {
                 url("${apiClient.basePath}/api/v1/replicationcontrollers")
             }
             returnType(V1ReplicationControllerList::class.java)
         } as V1ReplicationControllerList
+        println(list.items.size)
+    }
+
+    @Test
+    fun asynctest(){
+        async {
+            val list = await<V1NodeList> {
+                client { apiClient.httpClient }
+                request {
+                    url("${apiClient.basePath}/api/v1/nodes")
+                }
+            }
+            println(list)
+        }
+    }
+
+    @Test
+    fun nodelist(){
+        val list = curl {
+            client { apiClient.httpClient }
+            request {
+                url("${apiClient.basePath}/api/v1/nodes")
+            }
+            returnType(V1NodeList::class.java)
+        } as V1NodeList
         println(list.items.size)
     }
 
@@ -284,7 +310,7 @@ class CurlTest {
                 request {
                     url("http://127.0.0.1:7001/userRegister/saveForSystem")
                     method("post")
-                    body{u }
+                    body { u }
                 }
             } as Response
             println(reult.code())
@@ -294,7 +320,7 @@ class CurlTest {
 
     @Test
     fun sdsd(){
-
+        val watchClient = ClientUtil.watchClient()
         val watch = Watch.createWatch<V1ReplicationController>(
                 watchClient,
                 CoreV1Api(watchClient).listReplicationControllerForAllNamespacesCall(null,null,null,null,null,null,null,null,true,null),
@@ -306,17 +332,17 @@ class CurlTest {
 
     @Test
     fun clusterrolebindings(){
-
-        val list = curl{
+        val watchClient = ClientUtil.watchClient()
+        val list = curl {
             client { watchClient.httpClient }
-            request{
+            request {
                 url("${watchClient.basePath}/apis/rbac.authorization.k8s.io/v1/clusterroles")
                 params {
                     "watch" to true
                 }
             }
             event {
-                onWacth { line->
+                onWacth { line ->
                     log.info(line)
                 }
             }
@@ -328,17 +354,18 @@ class CurlTest {
 
     @Test
     fun metrics(){
-
-        val response = curl{
+        val watchClient = ClientUtil.watchClient()
+        val response = curl {
             client { watchClient.httpClient }
-            request{
+            request {
                 url("${watchClient.basePath}/apis/metrics.k8s.io/v1beta1/nodes")
 
             }
-        }as Response
+        } as Response
         val str =  response.body()?.string()!!
 
         println(str)
+
     }
     
     @Test
@@ -357,7 +384,14 @@ class CurlTest {
     }
 
 
+
+
 }
+
+
+
+
+
 
 
 

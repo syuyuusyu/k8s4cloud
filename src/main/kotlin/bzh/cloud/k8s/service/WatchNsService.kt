@@ -2,8 +2,8 @@ package bzh.cloud.k8s.service
 
 
 import bzh.cloud.k8s.config.ClientUtil
-import bzh.cloud.k8s.expansion.CurlEvent
-import bzh.cloud.k8s.expansion.curl
+import bzh.cloud.k8s.utils.CurlEvent
+import bzh.cloud.k8s.utils.curl
 import io.kubernetes.client.openapi.ApiClient
 import kotlinx.coroutines.*
 import okhttp3.Response
@@ -20,7 +20,7 @@ import java.util.concurrent.Executors
 
 
 @Service
-@EnableScheduling
+//@EnableScheduling
 class WatchNsService(
         val atomicThread: ExecutorCoroutineDispatcher
 
@@ -116,7 +116,7 @@ class WatchNsService(
         }
     }
 
-    @Scheduled(fixedRate = 1000 * 60)
+    //@Scheduled(fixedRate = 1000 * 60)
     fun metrics(){
         log.info("metrics")
         metricsNodes()
@@ -182,8 +182,8 @@ class WatchNsService(
                     val metadataJson = objJson.getJSONObject("metadata")
                     val uid = metadataJson.getString("uid")
                     val name = metadataJson.getString("name")
-                    var ns  =""
-                    if(metadataJson.has("namespace")){
+                    var ns = ""
+                    if (metadataJson.has("namespace")) {
                         ns = metadataJson.getString("namespace")
                     }
                     val kind = json.getJSONObject("object").getString("kind")
@@ -192,7 +192,7 @@ class WatchNsService(
                     if (type == "DELETED") {
                         deleteFlag = true
                     }
-                    addCache(uid,ns,line, deleteFlag, name, kind)
+                    addCache(uid, ns, line, deleteFlag, name, kind)
                     json.put("notCache", true)
                     dispatcherSink.forEach { it.first.next(json.toString()) }
                 }
@@ -210,7 +210,7 @@ class WatchNsService(
                     url("${apiClient.basePath}/apis/metrics.k8s.io/v1beta1/nodes")
                 }
 
-            }  as Response
+            } as Response
             val str = response.body()?.string()!!
             //log.info(str)
             dispatcherSink.forEach { it.first.next(str) }

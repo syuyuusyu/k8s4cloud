@@ -2,10 +2,10 @@ package bzh.cloud.k8s.controller
 
 import bzh.cloud.k8s.expansion.*
 import bzh.cloud.k8s.service.RegistryService
+import bzh.cloud.k8s.utils.curl
 import com.fasterxml.jackson.core.type.TypeReference
 
 import org.apache.commons.lang.RandomStringUtils
-import org.apache.commons.lang.StringUtils
 import org.openapitools.client.api.DefaultApi
 import org.openapitools.client.model.Catalog
 import org.openapitools.client.model.Tags
@@ -26,15 +26,11 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.*
 
 import reactor.core.publisher.Flux
-import reactor.core.publisher.FluxSink
 import reactor.core.publisher.Mono
 import java.io.File
 import java.nio.file.NoSuchFileException
-import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.stream.Collectors
 import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
 
 
 @RestController
@@ -80,23 +76,27 @@ class RegistryController(
     }
 
     @GetMapping("/images")
-    fun images(): List<String> = (curl {
-        request {
-            url("${registryUrl}/v2/_catalog")
-        }
-        returnType(Catalog::class.java)
-    } as Catalog
-            ).repositories!!.stream().parallel().map { name ->
-                curl {
-                    request {
-                        url("${registryUrl}/v2/${name}/tags/list")
-                    }
-                    returnType(Tags::class.java)
-                } as Tags
-            }.collect(Collectors.toList()).fold(ArrayList<String>()) { arr, tag ->
-                tag.tags!!.map{"${tag.name}:$it"}.forEach {arr.add(it)}
-                arr
+    fun images(@RequestParam(required = false,name = "registryUrl") paramUrl: String?): List<String> {
+        var url = registryUrl
+        paramUrl?.let { url = it }
+        return (curl {
+            request {
+                url("${url}/v2/_catalog")
             }
+            returnType(Catalog::class.java)
+        }as Catalog)
+        .repositories!!.stream().parallel().map { name ->
+             curl{
+                request {
+                    url("${url}/v2/${name}/tags/list")
+                }
+                 returnType(Tags::class.java)
+            } as Tags
+        }.collect(Collectors.toList()).filter { it!=null }.fold(ArrayList<String>()) { arr, tag ->
+            tag?.tags!!.map{"${tag.name}:$it"}.forEach {arr.add(it)}
+            arr
+        }
+    }
 
 
     @GetMapping("/catalog")

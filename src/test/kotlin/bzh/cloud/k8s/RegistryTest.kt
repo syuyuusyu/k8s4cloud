@@ -310,7 +310,7 @@ class RegistryTest {
     @Test
     fun test11(){
         val a = listOf("asasas","rfrfrfrf","sdfdfg","oipinklknlj")
-        val layers = a.reduceIndexed { i,acc, s -> if(i==1) """"$acc","$s"""" else acc+",\""+s+"\"" }
+        val layers = a.reduceIndexed { i,acc, s -> if(i==1) """"$acc","$s"""".trimMargin() else acc+",\""+s+"\"" }
         println(layers)
     }
 

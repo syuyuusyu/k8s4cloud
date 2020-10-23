@@ -1,21 +1,24 @@
 package bzh.cloud.k8s.config
 
 import bzh.cloud.k8s.utils.SpringUtil
-import io.kubernetes.client.ProtoClient
 import io.kubernetes.client.custom.V1Patch
 import io.kubernetes.client.openapi.ApiClient
 import io.kubernetes.client.openapi.apis.CoreV1Api
-import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api
 import io.kubernetes.client.util.ClientBuilder
 import io.kubernetes.client.util.KubeConfig
+import java.io.FileReader
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.util.*
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.newSingleThreadContext
 import okhttp3.OkHttpClient
 import org.openapitools.client.api.DefaultApi
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.context.support.BeanDefinitionDsl
 import org.springframework.core.io.ClassPathResource
-import org.springframework.stereotype.Component
 import org.springframework.web.reactive.HandlerMapping
 import org.springframework.web.reactive.function.server.RouterFunction
 import org.springframework.web.reactive.function.server.RouterFunctions
@@ -26,39 +29,33 @@ import org.springframework.web.reactive.socket.server.WebSocketService
 import org.springframework.web.reactive.socket.server.support.HandshakeWebSocketService
 import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter
 import org.springframework.web.reactive.socket.server.upgrade.ReactorNettyRequestUpgradeStrategy
-import java.io.FileReader
-import java.net.InetSocketAddress
-import java.net.Proxy
-import java.util.*
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-
+import reactor.core.scheduler.Scheduler
+import reactor.core.scheduler.Schedulers
 
 @ConfigurationProperties(prefix = "self")
 class KubeProperties(
-        val kubeConfigPath: String,
-        val ignorePath: List<String>,
-        val needProxyUrl: List<String>,
-        val jwtkey: String,
-        val allowMethods: String,
-        val allowHeads: String,
-        val allowOrigin: String,
-        val httpProxy: String,
-        val registryUrl: String,
-        val officalRegistryUrl: String,
-        val tempFileDir: String,
-        val enableProxy: Boolean
+    val kubeConfigPath: String,
+    val ignorePath: List<String>,
+    val needProxyUrl: List<String>,
+    val jwtkey: String,
+    val allowMethods: String,
+    val allowHeads: String,
+    val allowOrigin: String,
+    val httpProxy: String,
+    val registryUrl: String,
+    val officalRegistryUrl: String,
+    val tempFileDir: String,
+    val enableProxy: Boolean
 )
 
-
-//class UpdateClient(client: ApiClient) : ApiClient() {}
-//class WatchClient (client: ApiClient): ApiClient() {}
-//@Component
+// class UpdateClient(client: ApiClient) : ApiClient() {}
+// class WatchClient (client: ApiClient): ApiClient() {}
+// @Component
 class ClientUtil {
     companion object {
+
         private val path = (SpringUtil.getBean("self-bzh.cloud.k8s.config.KubeProperties") as KubeProperties).kubeConfigPath
-        //private val path ="/Users/syu/.kube/config-sup"
+        // private val path ="/Users/syu/.kube/config-sup"
         private var updateClient: ApiClient? = null
             get() {
                 if (field == null) {
@@ -97,17 +94,14 @@ class ClientUtil {
                 return field
             }
 
-        fun watchClient():ApiClient = watchClient!!
-        fun updateClient():ApiClient = updateClient!!
-        fun apiClient():ApiClient = apiClient!!
+        fun watchClient(): ApiClient = watchClient!!
+        fun updateClient(): ApiClient = updateClient!!
+        fun apiClient(): ApiClient = apiClient!!
         fun kubeApi() = CoreV1Api(apiClient!!)
     }
-
 }
 
-
 fun beans() = org.springframework.context.support.beans {
-
 
     bean<Executor>("threadPool") {
         Executors.newFixedThreadPool(50) { r ->
@@ -117,11 +111,15 @@ fun beans() = org.springframework.context.support.beans {
         }
     }
 
+    bean<Scheduler>("intervalScheduler") {
+        Schedulers.newElastic("intervalScheduler")
+    }
+
     bean<ExecutorCoroutineDispatcher>("atomicThread") {
         newSingleThreadContext("atomicThread")
     }
 
-    //------ websocket -------
+    // ------ websocket -------
     bean<WebSocketService>("webSocketService") {
         HandshakeWebSocketService(ReactorNettyRequestUpgradeStrategy())
     }
@@ -146,8 +144,6 @@ fun beans() = org.springframework.context.support.beans {
         Proxy(Proxy.Type.HTTP, InetSocketAddress(host, port))
     }
 
-
-
     bean<DefaultApi>("dockerHubApi") {
         val proxy = ref<Proxy>()
         DefaultApi().apply {
@@ -170,7 +166,6 @@ fun beans() = org.springframework.context.support.beans {
         }
     }
 
-
     bean<RouterFunction<ServerResponse>>() {
         RouterFunctions.resources("/k8s16api.json", ClassPathResource("static/k8s1.16.openapi.json"))
     }
@@ -178,38 +173,34 @@ fun beans() = org.springframework.context.support.beans {
     bean<RouterFunction<ServerResponse>>() {
         RouterFunctions.resources("/k8s17api.json", ClassPathResource("static/k8sv1.17.0.openapi.json"))
     }
-
-
 }
 
-//fun UpdateClient(): CoreV1Api {
+// fun UpdateClient(): CoreV1Api {
 //    //val path =""
 //    val path = (SpringUtil.getBean("self-bzh.cloud.k8s.config.KubeProperties") as KubeProperties).kubeConfigPath
 //    val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(path)))
 //            .setOverridePatchFormat(V1Patch.PATCH_FORMAT_JSON_MERGE_PATCH).build()
 //    client.setDebugging(true)
 //    return CoreV1Api(client)
-//}
+// }
 //
-//fun watchClient() :Pair<ApiClient,CoreV1Api>{
+// fun watchClient() :Pair<ApiClient,CoreV1Api>{
 //    val path = (SpringUtil.getBean("self-bzh.cloud.k8s.config.KubeProperties") as KubeProperties).kubeConfigPath
 //    val client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(FileReader(path))).build()
 //    val httpClient = client.getHttpClient().newBuilder().readTimeout(0, TimeUnit.SECONDS).build();
 //    client.setHttpClient(httpClient);
 //    //client.setDebugging(true)
 //    return Pair(client,CoreV1Api(client))
-//}
+// }
 
 data class CmContext(
-        val name: String,
-        val ns: String,
-        val key: String,
-        val context: String
+    val name: String,
+    val ns: String,
+    val key: String,
+    val context: String
 )
 
 class OperateResult() {
     var success: Boolean = false
     var msg: String = ""
 }
-
-

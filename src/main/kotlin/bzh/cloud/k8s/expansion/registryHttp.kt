@@ -1,9 +1,7 @@
 package bzh.cloud.k8s.expansion
 
 import bzh.cloud.k8s.config.KubeProperties
-import bzh.cloud.k8s.utils.JsonUtil
-import bzh.cloud.k8s.utils.SpringUtil
-import bzh.cloud.k8s.utils.TAR
+import bzh.cloud.k8s.utils.*
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.type.TypeReference
 import kotlinx.coroutines.*
@@ -11,7 +9,6 @@ import okhttp3.*
 import okhttp3.internal.Util
 import okio.*
 import org.apache.commons.lang.RandomStringUtils
-import org.openapitools.client.Pair
 import org.openapitools.client.api.DefaultApi
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -236,8 +233,6 @@ class ManifestJson(){
         TAR.copyInputStreamToFile(input,file)
         return file
     }
-
-
 }
 
 class ProcessDetail(){
@@ -341,7 +336,7 @@ fun DefaultApi.startUpload(name:String):kotlin.Pair<String?,String?>{
         request {
             method("post")
             body { json { "a" to "nothing" } }
-            url(this@startUpload.apiClient.basePath+"/v2/$name/blobs/uploads/")
+            url(this@startUpload.apiClient.basePath + "/v2/$name/blobs/uploads/")
         }
     } as Response
 
@@ -419,16 +414,10 @@ fun DefaultApi.search(keyWord:String,page:Int,pageSize:Int):Map<String,Any>{
 //curl -X DELETE "http://<registry-host>/v1/repositories/<image-name>/"
 //curl -X DELETE "http://<registry-host>/v1/repositories/<image-name>/tags/<tag-name>"
 
-
-
-
-
-
-
-
 @Throws(IOException::class)
 fun readFromInputStream(inputStream: InputStream): String? {
     val resultStringBuilder = StringBuilder()
+
     BufferedReader(InputStreamReader(inputStream)).use { br ->
         var line: String?
         while (br.readLine().also { line = it } != null) {
