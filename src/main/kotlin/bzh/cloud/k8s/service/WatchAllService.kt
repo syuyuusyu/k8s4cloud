@@ -152,14 +152,12 @@ class WatchAllService(
     }
 
     fun addCache(uid: String, json: String, deleteFlag: Boolean, name: String = "", kind: String = "") {
-
-            if (deleteFlag) {
-                cache.remove(uid)
-            } else {
-                cache.put(uid, json)
-                log.info("addCache deleteFlag:{},kind:{},name:{} ", deleteFlag, kind, name)
-            }
-        
+        if (deleteFlag) {
+            cache.remove(uid)
+        } else {
+            cache.put(uid, json)
+            log.info("addCache deleteFlag:{},kind:{},name:{} ", deleteFlag, kind, name)
+        }
     }
 
     fun watch(url: String): CurlEvent {
@@ -181,9 +179,10 @@ class WatchAllService(
                     //log.info("{}", line)
                     val json = JSONObject(line)
                     val type = json.getString("type")
-                    val uid = json.getJSONObject("object").getJSONObject("metadata").getString("uid")
-                    val name = json.getJSONObject("object").getJSONObject("metadata").getString("name")
-                    val kind = json.getJSONObject("object").getString("kind")
+                    val jobj = json.getJSONObject("object")
+                    val uid = jobj.getJSONObject("metadata").getString("uid")
+                    val name = jobj.getJSONObject("metadata").getString("name")
+                    val kind = jobj.getString("kind")
                     //log.info("watch {},name:{}",kind,name)
                     var deleteFlag = false
                     if (type == "DELETED") {

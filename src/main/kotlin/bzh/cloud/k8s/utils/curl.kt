@@ -33,7 +33,6 @@ fun jsonArr(build: JsonArrayBuilder.() -> Unit) :JSONArray{
 
 class JsonObjectBuilder {
     val json = JSONObject()
-
     infix fun <T> String.to(value: T) {
         json.put(this, value)
     }
@@ -41,7 +40,6 @@ class JsonObjectBuilder {
 
 class JsonArrayBuilder{
     val arr = JSONArray()
-
     operator fun <T> T.unaryPlus(){
         arr.put(this)
     }
@@ -67,7 +65,6 @@ class JsonArrayBuilder{
     private fun source(source: Source): Source? {
         return object : ForwardingSource(source) {
             var totalBytesRead = 0L
-
 
             override fun read(sink: Buffer, byteCount: Long): Long {
                 var bytesRead:Long=0
@@ -364,7 +361,6 @@ fun  curl(exec: CurlEntity.()->Unit) :Any{
         return response
     }
 
-
     result = response
     entity.returnType?.let {
         try {
@@ -378,8 +374,6 @@ fun  curl(exec: CurlEntity.()->Unit) :Any{
             result = Any()
         }
     }
-
-
     return result
 }
 

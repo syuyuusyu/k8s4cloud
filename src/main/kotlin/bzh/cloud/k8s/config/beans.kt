@@ -104,11 +104,7 @@ class ClientUtil {
 fun beans() = org.springframework.context.support.beans {
 
     bean<Executor>("threadPool") {
-        Executors.newFixedThreadPool(50) { r ->
-            val t = Thread(r)
-            t.isDaemon = true
-            t
-        }
+        Executors.newFixedThreadPool(50) { Thread(it).apply { isDaemon=true }}
     }
 
     bean<Scheduler>("intervalScheduler") {
