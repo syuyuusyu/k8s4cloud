@@ -10,7 +10,7 @@ logging:
     ind.syu: debug
     io.kubernetes: info
     org:
-      springframework: info
+      springframework: debug
     javax:
       net:
         ssl: info

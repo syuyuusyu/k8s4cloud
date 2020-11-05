@@ -76,7 +76,6 @@ public class V1ManagedFieldsEntry {
 
 
     public V1ManagedFieldsEntry fields(Object fields) {
-
         this.fields = fields;
         return this;
     }
