@@ -895,6 +895,7 @@ class KubeController(
         }
 
         fun update(deployment: V1Deployment) {
+            log.info("deployment {}",deployment)
             AppsV1Api(ClientUtil.updateClient())
                     .replaceNamespacedDeploymentWithHttpInfo(deployment.metadata?.name, deployment.metadata?.namespace, deployment,
                             "true", null, null)

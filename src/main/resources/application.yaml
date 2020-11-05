@@ -40,8 +40,8 @@ self:
   needProxyUrl:
     - https://index.docker.io
   #kubeConfigPath: /config
-  kubeConfigPath: /Users/syu/.kube/config-sup
-  #kubeConfigPath: /Users/syu/.kube/test
+  #kubeConfigPath: /Users/syu/.kube/config-sup
+  kubeConfigPath: /Users/syu/.kube/config
   tokenExpireMin: 300
   jwtkey: 1KP0SsvENi7Uz1oQc07aXTL7kpQG5jBNIybqr60AlD4
   activitiRedisApprovalMessageChannel: receiveApprovalSresult

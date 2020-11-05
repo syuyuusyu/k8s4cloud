@@ -29,9 +29,6 @@ class PodTerminalWs(
         val intervalScheduler:Scheduler
 ) :WebSocketHandler {
 
-    @Value("\${self.kubeConfigPath}")
-    lateinit var kubeConfigPath: String
-
     companion object{
         private val log: Logger = LoggerFactory.getLogger(PodTerminalWs::class.java)
         private val sessions = Collections.synchronizedList(ArrayList<String>())
