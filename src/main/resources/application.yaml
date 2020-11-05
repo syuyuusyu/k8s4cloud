@@ -10,7 +10,7 @@ logging:
     ind.syu: debug
     io.kubernetes: info
     org:
-      springframework: info
+      springframework: debug
     javax:
       net:
         ssl: info
@@ -42,6 +42,7 @@ self:
   #kubeConfigPath: /config
   kubeConfigPath: /Users/syu/.kube/config
   #kubeConfigPath: /Users/syu/.kube/test
+
   tokenExpireMin: 300
   jwtkey: 1KP0SsvENi7Uz1oQc07aXTL7kpQG5jBNIybqr60AlD4
   activitiRedisApprovalMessageChannel: receiveApprovalSresult

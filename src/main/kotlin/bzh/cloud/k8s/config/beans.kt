@@ -34,18 +34,18 @@ import reactor.core.scheduler.Schedulers
 
 @ConfigurationProperties(prefix = "self")
 class KubeProperties(
-    val kubeConfigPath: String,
-    val ignorePath: List<String>,
-    val needProxyUrl: List<String>,
-    val jwtkey: String,
-    val allowMethods: String,
-    val allowHeads: String,
-    val allowOrigin: String,
-    val httpProxy: String,
-    val registryUrl: String,
-    val officalRegistryUrl: String,
-    val tempFileDir: String,
-    val enableProxy: Boolean
+        val kubeConfigPath: String,
+        val ignorePath: List<String>,
+        val needProxyUrl: List<String>,
+        val jwtkey: String,
+        val allowMethods: String,
+        val allowHeads: String,
+        val allowOrigin: String,
+        val httpProxy: String,
+        val registryUrl: String,
+        val officalRegistryUrl: String,
+        val tempFileDir: String,
+        val enableProxy: Boolean
 )
 
 // class UpdateClient(client: ApiClient) : ApiClient() {}
@@ -55,6 +55,7 @@ class ClientUtil {
     companion object {
 
         private val path = (SpringUtil.getBean("self-bzh.cloud.k8s.config.KubeProperties") as KubeProperties).kubeConfigPath
+
         // private val path ="/Users/syu/.kube/config-sup"
         private var updateClient: ApiClient? = null
             get() {
@@ -104,7 +105,7 @@ class ClientUtil {
 fun beans() = org.springframework.context.support.beans {
 
     bean<Executor>("threadPool") {
-        Executors.newFixedThreadPool(50) { Thread(it).apply { isDaemon=true }}
+        Executors.newFixedThreadPool(50) { Thread(it).apply { isDaemon = true } }
     }
 
     bean<Scheduler>("intervalScheduler") {
@@ -123,14 +124,10 @@ fun beans() = org.springframework.context.support.beans {
         WebSocketHandlerAdapter(ref<WebSocketService>())
     }
     bean<HandlerMapping>("webSocketHandlerMapping") {
-        val podTerminalWs = ref<WebSocketHandler>("podTerminalWs")
-        val map = HashMap<String, WebSocketHandler>()
-        map["/pod-terminal"] = podTerminalWs
-
-        val handlerMapping = SimpleUrlHandlerMapping()
-        handlerMapping.order = 1
-        handlerMapping.urlMap = map
-        handlerMapping
+        SimpleUrlHandlerMapping().apply {
+            order = 1
+            urlMap = mapOf("/pod-terminal" to ref<WebSocketHandler>("podTerminalWs"))
+        }
     }
 
     bean<Proxy>("httpProxy") {
@@ -190,10 +187,10 @@ fun beans() = org.springframework.context.support.beans {
 // }
 
 data class CmContext(
-    val name: String,
-    val ns: String,
-    val key: String,
-    val context: String
+        val name: String,
+        val ns: String,
+        val key: String,
+        val context: String
 )
 
 class OperateResult() {

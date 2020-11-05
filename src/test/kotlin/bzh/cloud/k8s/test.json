@@ -1,0 +1,156 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "apps/v1",
+  "metadata": {
+    "name": "alpine-deploy",
+    "namespace": "default",
+    "selfLink": "/apis/apps/v1/namespaces/default/deployments/alpine-deploy",
+    "uid": "743eafdb-16bf-4739-90d2-ec3140f0b463",
+    "resourceVersion": "198849",
+    "generation": 2,
+    "annotations": {
+      "deployment.kubernetes.io/revision": "1"
+    },
+    "managedFields": [
+      {
+        "manager": "OpenAPI-Generator",
+        "operation": "Update",
+        "apiVersion": "apps/v1",
+        "time": "2020-11-03T04:08:34Z",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:spec": {
+            "f:progressDeadlineSeconds": {},
+            "f:replicas": {},
+            "f:revisionHistoryLimit": {},
+            "f:selector": {
+              "f:matchLabels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:strategy": {
+              "f:rollingUpdate": {
+                ".": {},
+                "f:maxSurge": {},
+                "f:maxUnavailable": {}
+              },
+              "f:type": {}
+            },
+            "f:template": {
+              "f:metadata": {
+                "f:labels": {
+                  ".": {},
+                  "f:app": {}
+                },
+                "f:name": {}
+              },
+              "f:spec": {
+                "f:containers": {
+                  "k:{\"name\":\"alpine\"}": {
+                    ".": {},
+                    "f:command": {},
+                    "f:image": {},
+                    "f:imagePullPolicy": {},
+                    "f:name": {},
+                    "f:resources": {
+                      ".": {},
+                      "f:limits": {
+                        ".": {},
+                        "f:cpu": {},
+                        "f:memory": {}
+                      },
+                      "f:requests": {
+                        ".": {},
+                        "f:cpu": {},
+                        "f:memory": {}
+                      }
+                    },
+                    "f:terminationMessagePath": {},
+                    "f:terminationMessagePolicy": {}
+                  }
+                },
+                "f:dnsPolicy": {},
+                "f:restartPolicy": {},
+                "f:schedulerName": {},
+                "f:securityContext": {},
+                "f:terminationGracePeriodSeconds": {}
+              }
+            }
+          }
+        }
+      },
+      {
+        "manager": "kube-controller-manager",
+        "operation": "Update",
+        "apiVersion": "apps/v1",
+        "time": "2020-11-03T04:08:34Z",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              ".": {},
+              "f:deployment.kubernetes.io/revision": {}
+            }
+          }
+        }
+      }
+    ]
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels": {
+        "app": "alpine"
+      }
+    },
+    "template": {
+      "metadata": {
+        "name": "alpine",
+        "creationTimestamp": null,
+        "labels": {
+          "app": "alpine"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "alpine",
+            "image": "alpine-misc:v2",
+            "command": [
+              "sleep",
+              "99999"
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "100Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "100Mi"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "terminationGracePeriodSeconds": 30,
+        "dnsPolicy": "ClusterFirst",
+        "securityContext": {},
+        "schedulerName": "default-scheduler"
+      }
+    },
+    "strategy": {
+      "type": "RollingUpdate",
+      "rollingUpdate": {
+        "maxUnavailable": "25%",
+        "maxSurge": "25%"
+      }
+    },
+    "revisionHistoryLimit": 10,
+    "progressDeadlineSeconds": 600
+  }
+}

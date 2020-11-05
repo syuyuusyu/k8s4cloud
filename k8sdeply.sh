@@ -1,5 +1,5 @@
 v="latest"
-ip="10.10.50.199:5000"
+ip="syuyuusyu"
 #ip="192.168.50.28:5000"
 name="k8s-svc"
 mvn package -Dmaven.test.skip=true &&
